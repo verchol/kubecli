@@ -2,8 +2,9 @@
 # Make sure to check the documentation at http://goreleaser.com
 before:
   hooks:
+    - echo before hook
     # you may remove this if you don't use vgo
-    - go mod download
+   # - go mod download
     # you may remove this if you don't need go generate
     - go generate ./...
 builds:
@@ -26,3 +27,12 @@ changelog:
     exclude:
     - '^docs:'
     - '^test:'
+dockers:
+  -
+    binaries:
+    - dockertest
+    image_templates:
+    - "verchol/kubectx:latest"
+    - "verchol/kubectx:{{ .Tag }}"
+    extra_files:
+    - dist/config.yaml
