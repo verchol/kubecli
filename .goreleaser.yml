@@ -30,7 +30,8 @@ changelog:
 dockers:
   -
     binaries:
-    - dockertest
+    - kubectx
+    goos: "linux"
     image_templates:
     - "verchol/kubectx:latest"
     - "verchol/kubectx:{{ .Tag }}"
