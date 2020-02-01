@@ -30,10 +30,10 @@ changelog:
 dockers:
   -
     binaries:
-    - kubectx
+    - kubecli
     goos: "linux"
     image_templates:
-    - "verchol/kubectx:latest"
-    - "verchol/kubectx:{{ .Tag }}"
+    - "verchol/kubecli:latest"
+    - "verchol/kubecli:{{ .Tag }}"
     extra_files:
     - dist/config.yaml
