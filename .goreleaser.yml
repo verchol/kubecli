@@ -27,13 +27,25 @@ changelog:
     exclude:
     - '^docs:'
     - '^test:'
-dockers:
-  -
-    binaries:
-    - kubecli
-    goos: "linux"
-    image_templates:
-    - "verchol/kubecli:latest"
-    - "verchol/kubecli:{{ .Tag }}"
-    extra_files:
-    - dist/config.yaml
+#dockers:
+ # -
+  #  binaries:
+   
+   # - kubecli
+   # goos: "linux"
+   # image_templates:
+   # - "verchol/kubecli:latest"
+   # - "verchol/kubecli:{{ .Tag }}"
+   # extra_files:
+   # - dist/config.yaml
+
+brew:
+  github:
+    owner: verchol
+    name: kubecli
+  folder: Formula
+  description: "kubecli --help"
+  homepage: "http://docs.codefresh.io"
+  commit_author:
+    name: Oleg Verhovsky
+    email: oleg@codefresh.io
