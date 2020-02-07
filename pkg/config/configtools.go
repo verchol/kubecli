@@ -144,7 +144,46 @@ func HandleSetContext(c *cli.Context) error {
 
 	return nil
 }
+func HandleDeleteContext(c *cli.Context) error {
 
+	red := color.New(color.FgRed).SprintFunc()
+
+	config, err := loadConfig()
+	if err != nil {
+		return err
+	}
+
+	rawConfig, err := config.RawConfig()
+	fmt.Printf("\ncurrent context is %v\n", rawConfig.CurrentContext)
+
+	if !c.Args().Present() {
+		fmt.Println("no contexts to delete provided")
+		return nil
+	}
+
+	args := c.Args()
+	for i := 0; i < (len(c.Args().Tail()) + 1); i++ {
+		arg := args.Get(i)
+		_, ok := rawConfig.Contexts[arg]
+		if !ok {
+			return fmt.Errorf("cannot find context %s", arg)
+		}
+
+		if rawConfig.CurrentContext == arg {
+			fmt.Printf("warning: this removed your active context, use \"kubectl config use-context\" to select a different one\n")
+			continue
+		}
+
+		delete(rawConfig.Contexts, arg)
+		fmt.Printf("\ncontext %s deleted\n", red(arg))
+	}
+
+	if err := clientcmd.ModifyConfig(config.ConfigAccess(), rawConfig, true); err != nil {
+		return err
+	}
+
+	return nil
+}
 func loadConfig(opts ...string) (clientcmd.ClientConfig, error) {
 
 	home, _ := os.UserHomeDir()
@@ -166,12 +205,9 @@ func listContexts(config clientcmd.ClientConfig, flags FlagOptions) {
 	green := color.New(color.FgGreen).SprintFunc()
 
 	var data [][]string
-	headers := []string{"Contexts", "IsAvailable"}
+	headers := []string{"Contexts", "IsAvailable", "AuthProvider"}
 	var contexts [][]string
 
-	if !flags.Validate {
-		headers = headers[:1]
-	}
 	//load cache
 
 	bytes, err := ioutil.ReadFile(".status-cache")
@@ -189,7 +225,7 @@ func listContexts(config clientcmd.ClientConfig, flags FlagOptions) {
 		return
 	}
 
-	for name := range rawConfig.Contexts {
+	for name, _ := range rawConfig.Contexts {
 		var pods int
 		pods = -1
 		var contextData []string
@@ -201,6 +237,19 @@ func listContexts(config clientcmd.ClientConfig, flags FlagOptions) {
 
 		}
 
+		cfg, err := clientcmd.NewDefaultClientConfig(rawConfig, &clientcmd.ConfigOverrides{CurrentContext: name}).ClientConfig()
+		authProvider := "default"
+
+		if err != nil {
+			fmt.Printf("%error is %v\n", err)
+			authProvider = "invalid"
+		}
+
+		if (err == nil) && (cfg.AuthProvider != nil) {
+			authProvider = cfg.AuthProvider.Name
+		}
+		fmt.Printf("[auth %v]\n", authProvider)
+		//	auth := fmt.Sprintf("[%s]", authProvider)
 		var podStr string
 		if flags.Validate {
 			pods = testCluster(config, name)
@@ -210,7 +259,7 @@ func listContexts(config clientcmd.ClientConfig, flags FlagOptions) {
 		} else {
 			podStr = "_"
 		}
-		contextData = []string{currentContextName, podStr}
+		contextData = []string{currentContextName, podStr, authProvider}
 		data = append(data, contextData)
 
 	}
@@ -260,6 +309,7 @@ func testCluster(config clientcmd.ClientConfig, currentContext string) int {
 		&clientcmd.ConfigOverrides{CurrentContext: currentContext})
 
 	restConfig, err := tempConfig.ClientConfig()
+
 	if err != nil {
 		return -1
 	}

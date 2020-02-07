@@ -3,13 +3,13 @@ package main
 import (
 	"os"
 
-	"github.com/verchol/kubectx/pkg/config"
 	"github.com/fatih/color"
 	"github.com/urfave/cli"
+	"github.com/verchol/kubectx/pkg/config"
 )
 
 func info() {
-	app.Name = "Create Config CLI"
+	app.Name = "Create Kubeconfig CLI"
 	app.Usage = "An example how to create kube config"
 	app.Author = "verchol"
 	app.Version = "1.0.0"
@@ -26,6 +26,11 @@ func commands(app *cli.App) {
 			Action: func(c *cli.Context) {
 				color.Green("cli info is %v\n", app.Usage)
 			},
+		},
+		{
+			Name:   "delete",
+			Usage:  "delete context",
+			Action: config.HandleDeleteContext,
 		},
 		{
 			Name:  "list",
@@ -58,8 +63,7 @@ func commands(app *cli.App) {
 			Action: config.HandleSetContext,
 		},
 	}
-	 
-	 
+
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "validate",
@@ -69,8 +73,8 @@ func commands(app *cli.App) {
 			Usage: "used to reinitiate conncectivity status",
 		},
 	}
- 
-	app.Action = config.SetContextAction 
+
+	app.Action = config.SetContextAction
 }
 
 func init() {
