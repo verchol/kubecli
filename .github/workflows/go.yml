@@ -15,12 +15,4 @@ jobs:
 
     - name: GoReleaser Action
       uses: goreleaser/goreleaser-action@v1.2.1
-      with:
-        # GoReleaser version. Example: v0.118.0
-        version: # optional, default is latest
-        # Arguments to pass to GoReleaser
-        args: # optional
-        # Private key to import
-        key: # optional
-        # Working directory (below repository root)
-        workdir: # optional, default is .
+
