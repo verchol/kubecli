@@ -1,0 +1,26 @@
+name: Go
+on: [push]
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go 1.13
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+      id: go
+
+    - name: GoReleaser Action
+      uses: goreleaser/goreleaser-action@v1.2.1
+      with:
+        # GoReleaser version. Example: v0.118.0
+        version: # optional, default is latest
+        # Arguments to pass to GoReleaser
+        args: # optional
+        # Private key to import
+        key: # optional
+        # Working directory (below repository root)
+        workdir: # optional, default is .
