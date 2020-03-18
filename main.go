@@ -65,7 +65,7 @@ func commands(app *cli.App) {
 	}
 
 	app.Flags = []cli.Flag{
-		cli.BoolFlag{
+		cli.IntFlag{
 			Name:  "validate",
 			Usage: "used to validate cluster connectivity",
 		}, cli.BoolFlag{

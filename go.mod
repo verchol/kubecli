@@ -3,6 +3,7 @@ module github.com/verchol/kubectx
 go 1.13
 
 require (
+	github.com/caddyserver/caddy v1.0.4 // indirect
 	github.com/fatih/color v1.8.0
 	github.com/imdario/mergo v0.3.8 // indirect
 	github.com/micro/cli v0.2.0
