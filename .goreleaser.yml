@@ -42,7 +42,7 @@ changelog:
 brew:
   github:
     owner: verchol
-    name: kubecli
+    name: homebrew-kubecli
   folder: Formula
   description: "kubecli --help"
   homepage: "http://docs.codefresh.io"
