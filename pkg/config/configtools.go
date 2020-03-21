@@ -19,6 +19,7 @@ import (
 
 	"os"
 
+	"github.com/docker/machine/libmachine/log"
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/urfave/cli"
@@ -48,7 +49,7 @@ func SetNewCurrentContext(config clientcmd.ClientConfig, newContext string) (cli
 		WrongContextMessage := fmt.Sprintf("context %v does not exist ", newContext)
 		return config, errors.New(WrongContextMessage)
 	}
-	fmt.Printf("%v\n", config.ConfigAccess())
+	log.Debug("%v\n", config.ConfigAccess())
 	err = clientcmd.ModifyConfig(config.ConfigAccess(), rawConfig, false)
 	if err != nil {
 		panic(err)
@@ -130,16 +131,17 @@ func HandleSetContext(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if c.Command.Name == "newcontext" {
-		newContext = c.String("context")
-	}
+
+	newContext = c.Args().Get(0)
+	log.Debug("new context %v", newContext)
+
 	if newContext != "" {
 		fmt.Println("updating context...", newContext)
 		config, _ = SetNewCurrentContext(config, newContext)
 	}
 	rawConfig, err := config.RawConfig()
 	fmt.Printf("\ncurrent context is %v\n", rawConfig.CurrentContext)
-	flags := FlagOptions{Validate: c.Bool("validate"), NoCache: c.Bool("nocache")}
+	flags := FlagOptions{Validate: c.Bool("validate"), NoCache: true}
 	listContexts(config, flags)
 
 	return nil
@@ -248,7 +250,7 @@ func listContexts(config clientcmd.ClientConfig, flags FlagOptions) {
 		if (err == nil) && (cfg.AuthProvider != nil) {
 			authProvider = cfg.AuthProvider.Name
 		}
-		fmt.Printf("[auth %v]\n", authProvider)
+		log.Debug("[auth %v]\n", authProvider)
 		//	auth := fmt.Sprintf("[%s]", authProvider)
 		var podStr string
 		if flags.Validate {
@@ -328,7 +330,7 @@ func testCluster(config clientcmd.ClientConfig, currentContext string) int {
 			Pods(ns).
 			List(metav1.ListOptions{TimeoutSeconds: &timeout})
 
-	fmt.Printf("[%v] pods are %v len=%v \n", currentContext, pods.Items, len(pods.Items))
+	log.Debug("[%v] pods are %v len=%v \n", currentContext, pods.Items, len(pods.Items))
 	if err != nil {
 		return -1
 	}

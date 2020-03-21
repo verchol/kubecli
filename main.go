@@ -33,6 +33,11 @@ func commands(app *cli.App) {
 			Action: config.HandleDeleteContext,
 		},
 		{
+			Name:   "switch",
+			Usage:  "change context to new one",
+			Action: config.HandleSetContext,
+		},
+		{
 			Name:  "list",
 			Usage: "list context",
 			Flags: []cli.Flag{
