@@ -100,7 +100,7 @@ func SetContextAction(c *cli.Context) error {
 	newContext = c.Args().First()
 	oldContext := ""
 	if newContext == "" {
-		fmt.Println("missing context name ...\n")
+		fmt.Println("missing context name ...")
 		return errors.New("missing context name")
 	}
 
@@ -136,7 +136,7 @@ func HandleSetContext(c *cli.Context) error {
 	log.Debug("new context %v", newContext)
 
 	if newContext != "" {
-		fmt.Println("updating context...", newContext)
+		fmt.Printf("updating context... %v", newContext)
 		config, _ = SetNewCurrentContext(config, newContext)
 	}
 	rawConfig, err := config.RawConfig()
@@ -222,7 +222,7 @@ func listContexts(config clientcmd.ClientConfig, flags FlagOptions) {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("context from cache\n")
+		fmt.Println("context from cache")
 		printTable(headers, contexts)
 		return
 	}
@@ -243,7 +243,7 @@ func listContexts(config clientcmd.ClientConfig, flags FlagOptions) {
 		authProvider := "default"
 
 		if err != nil {
-			fmt.Printf("%error is %v\n", err)
+			fmt.Printf("error is %v\n", err)
 			authProvider = "invalid"
 		}
 
