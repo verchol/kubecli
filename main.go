@@ -54,18 +54,24 @@ func commands(app *cli.App) {
 		},
 		{
 			Name:    "newcontext",
-			Aliases: []string{"set"},
+			Aliases: []string{"new"},
 			Usage:   "set new context",
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:  "context",
+					Name:  "name",
 					Usage: "used to set new kubernetes context",
 				}, cli.BoolFlag{
-					Name:  "validate",
-					Usage: "used to validate cluster connectivity",
+					Name:     "token",
+					Usage:    "used to define context's service account ",
+					Required: false,
+				},
+				cli.StringFlag{
+					Name:     "namespace",
+					Usage:    "used to define context's namespace",
+					Required: true,
 				},
 			},
-			Action: config.HandleSetContext,
+			Action: config.CreateContextAction,
 		},
 	}
 
