@@ -93,7 +93,7 @@ func SetContextAction(c *cli.Context) error {
 
 	var newContext string
 
-	config, err := loadConfig()
+	config, err := LoadConfig()
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func HandleSetContext(c *cli.Context) error {
 
 	var newContext string
 
-	config, err := loadConfig()
+	config, err := LoadConfig()
 	if err != nil {
 		return err
 	}
@@ -150,7 +150,7 @@ func HandleDeleteContext(c *cli.Context) error {
 
 	red := color.New(color.FgRed).SprintFunc()
 
-	config, err := loadConfig()
+	config, err := LoadConfig()
 	if err != nil {
 		return err
 	}
@@ -186,7 +186,9 @@ func HandleDeleteContext(c *cli.Context) error {
 
 	return nil
 }
-func loadConfig(opts ...string) (clientcmd.ClientConfig, error) {
+
+//LoadConfig ...
+func LoadConfig(opts ...string) (clientcmd.ClientConfig, error) {
 
 	home, _ := os.UserHomeDir()
 	var kubeconfig = filepath.Join(home, ".kube", "config")

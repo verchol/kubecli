@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/urfave/cli"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -13,11 +12,12 @@ import (
 )
 
 type ServiceAccount struct {
-	sa    *v1.ServiceAccount
-	token []byte
+	Sa    *v1.ServiceAccount
+	Token []byte
 }
 
-func createServiceAccount(namespace string, name string, config clientcmd.ClientConfig) (ServiceAccount, error) {
+//CreateServiceAccount ...
+func CreateServiceAccount(namespace string, name string, config clientcmd.ClientConfig) (ServiceAccount, error) {
 
 	c, err := config.ClientConfig()
 	if err != nil {
@@ -66,7 +66,7 @@ func getSecretToken(client *kubernetes.Clientset, ns string, name string) []byte
 
 }
 func getServiceAccount(namespace string, name string) (*v1.ServiceAccount, error) {
-	config, err := loadConfig()
+	config, err := LoadConfig()
 	if err != nil {
 		panic(err)
 	}
@@ -91,22 +91,9 @@ func getServiceAccount(namespace string, name string) (*v1.ServiceAccount, error
 	return sa, err
 
 }
-func CreateContextAction(c *cli.Context) error {
-	contextName := c.String("name")
-	ns := c.String("namespace")
-	user := c.String("token")
 
-	config, err := loadConfig()
-	if err != nil {
-		return err
-	}
-	err = createContext(contextName, ns, user, config)
-
-	return err
-
-}
-
-func createContext(contextName string, namespace string, satoken string, config clientcmd.ClientConfig) error {
+//CreateContext ...
+func CreateContext(contextName string, namespace string, satoken string, config clientcmd.ClientConfig) error {
 	//choose cluster + namespace + user
 	//create
 	//set as default

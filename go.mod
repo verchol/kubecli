@@ -6,9 +6,8 @@ require (
 	github.com/caddyserver/caddy v1.0.4 // indirect
 	github.com/docker/machine v0.16.2
 	github.com/fatih/color v1.8.0
-	github.com/google/martian v2.1.0+incompatible
 	github.com/imdario/mergo v0.3.8 // indirect
-	github.com/micro/cli v0.2.0
+	github.com/micro/cli v0.2.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/urfave/cli v1.22.2
 	golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876 // indirect
