@@ -4,9 +4,13 @@ import (
 	"fmt"
 
 	"github.com/docker/machine/libmachine/log"
-	"github.com/fatih/color"
 	"github.com/urfave/cli"
+	"github.com/verchol/kubectx/pkg/config"
 	configtools "github.com/verchol/kubectx/pkg/config"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/fatih/color"
 )
 
 //Commands ...
@@ -19,6 +23,22 @@ func Commands(app *cli.App) {
 			Action: func(c *cli.Context) {
 				color.Green("cli info is %v\n", app.Usage)
 			},
+		},
+		{
+			Name:    "test",
+			Aliases: []string{"t"},
+			Usage:   "test cluster",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "context",
+					Usage: "context to for validation",
+				},
+				cli.Int64Flag{
+					Name:  "timeout",
+					Usage: "how long to wait for cluster to answer in sec",
+				},
+			},
+			Action: TestClusterAction,
 		},
 		{
 			Name:   "delete",
@@ -126,4 +146,49 @@ func CreateContextAction(c *cli.Context) error {
 
 	return err
 
+}
+
+//TestClusterAction ...
+func TestClusterAction(c *cli.Context) error {
+	context := c.String("context")
+
+	config, err := config.LoadConfig()
+	if err != nil {
+		panic(err)
+	}
+	r, _ := config.RawConfig()
+	if context == "" {
+		context = r.CurrentContext
+	}
+	waitingPeriod := c.Int64("timeout")
+
+	tempConfig := clientcmd.NewDefaultClientConfig(r,
+		&clientcmd.ConfigOverrides{CurrentContext: context})
+
+	namespace, _, err := tempConfig.Namespace()
+	if err != nil {
+		panic(err)
+	}
+
+	restConfig, err := tempConfig.ClientConfig()
+
+	if err != nil {
+		panic(err)
+	}
+	clientSet, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		panic(err)
+	}
+
+	works, err := configtools.ValidateCluster(waitingPeriod, namespace, clientSet)
+	Red := color.New(color.FgRed).SprintFunc()
+	Green := color.New(color.FgGreen).SprintFunc()
+	if !works {
+		fmt.Printf("context %v is not available \n%v :  %v\n", Green(context), Red("error:"), err)
+		return err
+	}
+
+	fmt.Printf("context %v is available\n", Green(context))
+
+	return nil
 }
