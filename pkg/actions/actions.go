@@ -58,10 +58,6 @@ func Commands(app *cli.App) {
 					Name:  "validate",
 					Usage: "used to validate cluster connectivity",
 				},
-				cli.BoolFlag{
-					Name:  "nocache",
-					Usage: "used to reinitiate conncectivity status",
-				},
 			},
 			Action: configtools.HandleSetContext,
 		},
@@ -97,8 +93,8 @@ func Commands(app *cli.App) {
 			Name:  "validate",
 			Usage: "used to validate cluster connectivity",
 		}, cli.BoolFlag{
-			Name:  "nocache",
-			Usage: "used to reinitiate conncectivity status",
+			Name:  "cache",
+			Usage: "take information from local cache file ",
 		},
 	}
 
@@ -183,6 +179,25 @@ func TestClusterAction(c *cli.Context) error {
 	works, err := configtools.ValidateCluster(waitingPeriod, namespace, clientSet)
 	Red := color.New(color.FgRed).SprintFunc()
 	Green := color.New(color.FgGreen).SprintFunc()
+
+	cache, err := configtools.NewLocalCache()
+	defer cache.Flash()
+	if err != nil {
+		panic(err)
+	}
+	kubeContext := configtools.KubeContext{}
+	kubeContext.Name = context
+	ns, _, _ := tempConfig.Namespace()
+	kubeContext.Namespace = ns
+	rawConfig, _ := config.RawConfig()
+	auth := rawConfig.Contexts[context].AuthInfo
+	authProvider := rawConfig.AuthInfos[auth].AuthProvider
+	if authProvider != nil {
+		kubeContext.AuthProvider = authProvider.Name
+	}
+	kubeContext.Status = works
+
+	cache.AddEntry(context, &kubeContext)
 	if !works {
 		fmt.Printf("context %v is not available \n%v :  %v\n", Green(context), Red("error:"), err)
 		return err

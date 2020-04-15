@@ -1,11 +1,11 @@
 package config
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
 	"sort"
+	"time"
 
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
@@ -141,8 +141,13 @@ func HandleSetContext(c *cli.Context) error {
 	}
 	rawConfig, err := config.RawConfig()
 	fmt.Printf("\ncurrent context is %v\n", rawConfig.CurrentContext)
-	flags := FlagOptions{Validate: c.Bool("validate"), NoCache: true}
-	listContexts(config, flags)
+
+	flags := FlagOptions{Validate: false, Cache: c.GlobalBool("cache")}
+	if flags.Cache {
+		ListContextFromCache()
+		return nil
+	}
+	ListContexts(config, flags)
 
 	return nil
 }
@@ -201,38 +206,46 @@ func LoadConfig(opts ...string) (clientcmd.ClientConfig, error) {
 	return config, err
 
 }
-func listContexts(config clientcmd.ClientConfig, flags FlagOptions) {
+
+//ListContextFromCache ...
+func ListContextFromCache() {
+	c, err := NewLocalCache()
+	if err != nil {
+		panic(err)
+	}
+	headers := []string{"Contexts", "IsAvailable", "AuthProvider"}
+
+	printTable(headers, c.cache)
+}
+
+//UpdateCache
+func UpdateCache(data map[string]*KubeContext) error {
+	c, err := NewLocalCache()
+	fmt.Printf("update cache %v\n", len(data))
+	if err != nil {
+		return err
+	}
+
+	c.cache = data
+	_, err = c.Flash()
+
+	return err
+
+}
+func ListContexts(config clientcmd.ClientConfig, flags FlagOptions) {
 	rawConfig, err := config.RawConfig()
 	if err != nil {
 		panic(err)
 	}
 	green := color.New(color.FgGreen).SprintFunc()
 
-	var data [][]string
+	data := make(map[string]*KubeContext, 100)
 	headers := []string{"Contexts", "IsAvailable", "AuthProvider"}
-	var contexts [][]string
-
-	//load cache
-
-	bytes, err := ioutil.ReadFile(".status-cache")
-	if err != nil {
-		fmt.Println(green("no status file yet created\n"))
-
-	}
-	if err == nil && !flags.NoCache {
-		err := json.Unmarshal(bytes, &contexts)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println("context from cache")
-		printTable(headers, contexts)
-		return
-	}
 
 	for name, _ := range rawConfig.Contexts {
 		var pods int
 		pods = -1
-		var contextData []string
+
 		currentContextName := fmt.Sprintf("%v", name)
 
 		if rawConfig.CurrentContext == name {
@@ -254,36 +267,34 @@ func listContexts(config clientcmd.ClientConfig, flags FlagOptions) {
 		}
 		log.Debug("[auth %v]\n", authProvider)
 		//	auth := fmt.Sprintf("[%s]", authProvider)
-		var podStr string
+		pods = 1
 		if flags.Validate {
 			pods = testCluster(config, name)
 		}
+		var status bool
+
 		if pods != -1 {
-			podStr = fmt.Sprintf("%v", pods)
+
+			status = true
 		} else {
-			podStr = "_"
+
+			status = false
 		}
-		contextData = []string{currentContextName, podStr, authProvider}
-		data = append(data, contextData)
+		namespace, _, _ := config.Namespace()
+		kubeContext := &KubeContext{currentContextName, namespace, status, authProvider, time.Now().String()}
+		data[currentContextName] = kubeContext
 
 	}
-
+	err = UpdateCache(data)
+	if err != nil {
+		panic(err)
+	}
 	printTable(headers, data)
-
-	bytes, err = json.Marshal(data)
-
-	if err != nil {
-		panic(err)
-	}
-	err = ioutil.WriteFile(".status-cache", bytes, 0644)
-	if err != nil {
-		panic(err)
-	}
 
 }
 
 //Contexts
-type Contexts [][]string
+type Contexts []string
 
 func (a Contexts) Len() int { return len(a) }
 func (a Contexts) Swap(i, j int) {
@@ -291,17 +302,34 @@ func (a Contexts) Swap(i, j int) {
 }
 func (a Contexts) Less(i, j int) bool {
 
-	return a[i][0] < a[j][0]
+	return a[i] < a[j]
 }
 
-func printTable(header []string, data [][]string) {
+func printTable(header []string, data map[string]*KubeContext) {
+	happyIcon := "\u2714"
+	sadIcon := "\u2716"
+	red := color.New(color.FgRed).SprintFunc()
+	green := color.New(color.FgGreen).SprintFunc()
 
-	sort.Sort(Contexts(data))
+	var names []string
+	for name, _ := range data {
+		names = append(names, name)
+	}
+	sort.Sort(Contexts(names))
 
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader(header)
 
-	for _, v := range data {
+	for _, name := range names {
+		ctx := data[name]
+		var statusStr string
+		if ctx.Status {
+
+			statusStr = fmt.Sprintf("%s", green(happyIcon))
+		} else {
+			statusStr = fmt.Sprintf("%s", red(sadIcon))
+		}
+		v := []string{ctx.Name, statusStr, ctx.AuthProvider}
 		table.Append(v)
 	}
 	table.Render() // Send output
@@ -344,5 +372,5 @@ func testCluster(config clientcmd.ClientConfig, currentContext string) int {
 type FlagOptions struct {
 	List     bool
 	Validate bool
-	NoCache  bool
+	Cache    bool
 }
