@@ -148,6 +148,12 @@ func CreateContextAction(c *cli.Context) error {
 func TestClusterAction(c *cli.Context) error {
 	context := c.String("context")
 
+	if context == "" {
+		context = c.Args().First()
+	}
+
+	fmt.Printf("context is %v\n", context)
+
 	config, err := config.LoadConfig()
 	if err != nil {
 		panic(err)
@@ -181,7 +187,7 @@ func TestClusterAction(c *cli.Context) error {
 	Green := color.New(color.FgGreen).SprintFunc()
 
 	cache, err := configtools.NewLocalCache()
-	defer cache.Flash()
+
 	if err != nil {
 		panic(err)
 	}
@@ -195,15 +201,20 @@ func TestClusterAction(c *cli.Context) error {
 	if authProvider != nil {
 		kubeContext.AuthProvider = authProvider.Name
 	}
-	kubeContext.Status = works
+	kubeContext.Status = configtools.ClusterAvailable
 
-	cache.AddEntry(context, &kubeContext)
 	if !works {
 		fmt.Printf("context %v is not available \n%v :  %v\n", Green(context), Red("error:"), err)
-		return err
+		kubeContext.Status = configtools.ClusterNotAvailable
+
+	} else {
+		fmt.Printf("context %v is available\n", Green(context))
+		kubeContext.Status = configtools.ClusterAvailable
 	}
 
-	fmt.Printf("context %v is available\n", Green(context))
+	fmt.Printf("adding entry %v %v\n", kubeContext.Name, kubeContext.Status)
 
-	return nil
+	cache.AddEntry(context, &kubeContext)
+	cache.Flash()
+	return err
 }

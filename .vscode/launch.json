@@ -13,7 +13,8 @@
             "mode": "auto",
             "program": "${fileDirname}",
             "env": {},
-            "args": ["list", "--cache"]
+            "args": ["list"]
+            //"args": ["test", "--timeout", "20", "helm3demo"]
         }
     ]
 }

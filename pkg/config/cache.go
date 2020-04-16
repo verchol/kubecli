@@ -10,13 +10,21 @@ import (
 )
 
 //Cache ..
+type ClusterStatus int
+
+const (
+	ClusterAvailable    ClusterStatus = 1
+	ClusterNotAvailable ClusterStatus = 2
+	ClusterNotTested    ClusterStatus = 0
+)
 
 type KubeContext struct {
-	Name         string
-	Namespace    string
-	Status       bool
-	AuthProvider string
-	LastUpdated  string
+	Name           string
+	Namespace      string
+	Status         ClusterStatus
+	AuthProvider   string
+	LastUpdated    string
+	CurrentContext bool
 }
 type Cache interface {
 	Create() error
@@ -66,14 +74,14 @@ func NewLocalCache(cacheOpt ...string) (*LocalCache, error) {
 
 //Create ..
 func (c *LocalCache) Create() error {
-	fileInfo, err := os.Stat(c.cachePath)
+	_, err := os.Stat(c.cachePath)
 	fmt.Printf("cachefile %v err %v", c.cachePath, err)
 
-	if fileInfo.Size() != 0 {
-		return nil
+	if err == nil || !os.IsNotExist(err) {
+		return err
 	}
 
-	fmt.Printf("creating cache file %v", LocalCacheFile)
+	fmt.Printf("\ncreating cache file %v\n\n", LocalCacheFile)
 	_, err = os.Create(LocalCacheFile)
 
 	return err
@@ -94,7 +102,7 @@ func (c *LocalCache) loadCache() (map[string]*KubeContext, error) {
 }
 
 func (c *LocalCache) Flash() (*LocalCache, error) {
-
+	fmt.Printf("flashing cache\n")
 	bytes, err := json.Marshal(c.cache)
 
 	if err != nil {

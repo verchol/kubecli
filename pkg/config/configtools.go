@@ -225,7 +225,14 @@ func UpdateCache(data map[string]*KubeContext) error {
 	if err != nil {
 		return err
 	}
-
+	for i, _ := range data {
+		if data[i].Status == ClusterNotTested {
+			_, ok := c.cache[i]
+			if ok {
+				data[i].Status = c.cache[i].Status
+			}
+		}
+	}
 	c.cache = data
 	_, err = c.Flash()
 
@@ -237,7 +244,6 @@ func ListContexts(config clientcmd.ClientConfig, flags FlagOptions) {
 	if err != nil {
 		panic(err)
 	}
-	green := color.New(color.FgGreen).SprintFunc()
 
 	data := make(map[string]*KubeContext, 100)
 	headers := []string{"Contexts", "IsAvailable", "AuthProvider"}
@@ -247,12 +253,6 @@ func ListContexts(config clientcmd.ClientConfig, flags FlagOptions) {
 		pods = -1
 
 		currentContextName := fmt.Sprintf("%v", name)
-
-		if rawConfig.CurrentContext == name {
-			//fmt.Printf("current context %v is active =  %v\n", green(name), (pods != -1))
-			currentContextName = fmt.Sprintf("%v", green(name))
-
-		}
 
 		cfg, err := clientcmd.NewDefaultClientConfig(rawConfig, &clientcmd.ConfigOverrides{CurrentContext: name}).ClientConfig()
 		authProvider := "default"
@@ -268,20 +268,22 @@ func ListContexts(config clientcmd.ClientConfig, flags FlagOptions) {
 		log.Debug("[auth %v]\n", authProvider)
 		//	auth := fmt.Sprintf("[%s]", authProvider)
 		pods = 1
+		var status ClusterStatus
+		status = ClusterNotTested
+
 		if flags.Validate {
 			pods = testCluster(config, name)
-		}
-		var status bool
+			if pods != -1 {
 
-		if pods != -1 {
-
-			status = true
-		} else {
-
-			status = false
+				status = ClusterAvailable
+			} else {
+				status = ClusterNotAvailable
+			}
 		}
 		namespace, _, _ := config.Namespace()
-		kubeContext := &KubeContext{currentContextName, namespace, status, authProvider, time.Now().String()}
+		isCurrentContext := (rawConfig.CurrentContext == name)
+		kubeContext := &KubeContext{currentContextName, namespace,
+			status, authProvider, time.Now().String(), isCurrentContext}
 		data[currentContextName] = kubeContext
 
 	}
@@ -306,8 +308,8 @@ func (a Contexts) Less(i, j int) bool {
 }
 
 func printTable(header []string, data map[string]*KubeContext) {
-	happyIcon := "\u2714"
-	sadIcon := "\u2716"
+	//happyIcon := "\u2714"
+	//sadIcon := "\u2716"
 	red := color.New(color.FgRed).SprintFunc()
 	green := color.New(color.FgGreen).SprintFunc()
 
@@ -323,13 +325,19 @@ func printTable(header []string, data map[string]*KubeContext) {
 	for _, name := range names {
 		ctx := data[name]
 		var statusStr string
-		if ctx.Status {
-
-			statusStr = fmt.Sprintf("%s", green(happyIcon))
-		} else {
-			statusStr = fmt.Sprintf("%s", red(sadIcon))
+		contextName := ctx.Name
+		switch ctx.Status {
+		case ClusterAvailable:
+			statusStr = fmt.Sprintf("%s", green("Yes"))
+		case ClusterNotAvailable:
+			statusStr = fmt.Sprintf("%s", red("No"))
+		case ClusterNotTested:
+			statusStr = "N/A"
 		}
-		v := []string{ctx.Name, statusStr, ctx.AuthProvider}
+		if ctx.CurrentContext {
+			contextName = green(contextName)
+		}
+		v := []string{contextName, statusStr, ctx.AuthProvider}
 		table.Append(v)
 	}
 	table.Render() // Send output
