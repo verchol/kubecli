@@ -1,4 +1,0 @@
-480f0432084fb7494e88a1a2b74da1be0daab5071d575f48c6e7d9070f4e4393  kubecli_v1.0.9-next_Linux_i386.tar.gz
-3ffaf9509cea9520694c6908dbe1e8c4333502fe99a69e61ed4a0bcabb81692b  kubecli_v1.0.9-next_Linux_x86_64.tar.gz
-3175eba6759ed5ecf9085fe4dcf556e3639a8ff498f34831a9c1985c26bbb361  kubecli_v1.0.9-next_Darwin_x86_64.tar.gz
-3a20f62d49bc452ea55a58a5f14fb9676f2d00f3e96e99a6e9b179b951f93302  kubecli_v1.0.9-next_Darwin_i386.tar.gz
