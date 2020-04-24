@@ -9,7 +9,6 @@ import (
 
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	"io/ioutil"
 
@@ -77,13 +76,12 @@ func printAuth(auth *api.AuthInfo) {
 	}
 }
 
-func load() (*clientcmdapi.Config, error) {
-	data, err := ioutil.ReadFile("./kubeconfig")
-	if err != nil {
-		panic(err)
-	}
-	config, err := clientcmd.Load(data)
-	fmt.Printf("%v", config)
+func LoadConfig(opts ...string) (clientcmd.ClientConfig, error) {
+
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	rawConfig, err := loadingRules.Load()
+
+	config := clientcmd.NewDefaultClientConfig(*rawConfig, &clientcmd.ConfigOverrides{})
 
 	return config, err
 }
@@ -188,17 +186,20 @@ func HandleDeleteContext(c *cli.Context) error {
 }
 
 //LoadConfig ...
-func LoadConfig(opts ...string) (clientcmd.ClientConfig, error) {
+func LoadConfigFromFile(opts ...string) (clientcmd.ClientConfig, error) {
 
 	home, _ := os.UserHomeDir()
 	var kubeconfig = filepath.Join(home, ".kube", "config")
 	tempConfig, err := clientcmd.LoadFromFile(kubeconfig)
+	if err != nil {
+		return nil, err
+	}
 	green := color.New(color.FgGreen).SprintFunc()
 	//tempConfig.CurrentContext
 	config := clientcmd.NewDefaultClientConfig(*tempConfig, &clientcmd.ConfigOverrides{})
 	fmt.Printf("%v\n", green(config.ConfigAccess().GetDefaultFilename()))
 
-	return config, err
+	return config, nil
 
 }
 func listContexts(config clientcmd.ClientConfig, flags FlagOptions) {

@@ -39,13 +39,13 @@ changelog:
    # extra_files:
    # - dist/config.yaml
 
-brew:
-  github:
-    owner: verchol
-    name: homebrew-kubecli
-  folder: Formula
-  description: "kubecli --help"
-  homepage: "http://docs.codefresh.io"
-  commit_author:
-    name: Oleg Verhovsky
-    email: oleg@codefresh.io
+brews:
+  - github:
+      owner: verchol
+      name: homebrew-kubecli
+    folder: Formula
+    description: "kubecli --help"
+    homepage: "http://docs.codefresh.io"
+    commit_author:
+      name: Oleg Verhovsky
+      email: oleg@codefresh.io
