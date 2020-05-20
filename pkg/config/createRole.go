@@ -49,7 +49,7 @@ func CludsterAdmin(r *RoleOpts) {
 	r.Resources = []string{"*"}
 	r.ApiGroups = []string{"", "extensions", "apps"}
 }
-func Admin(name string, ns string) *RoleOpts {
+func Admin(name string, ns string, r *RoleOpts) {
 	r.Verbs = []string{"create", "watch", "get", "list"}
 	r.Resources = []string{"*"}
 	r.ApiGroups = []string{"", "extensions", "apps"}

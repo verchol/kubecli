@@ -7,11 +7,19 @@ import (
 	"github.com/verchol/kubectx/pkg/actions"
 )
 
-func info() {
+//AppVersion ...
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+	builtBy = "unknown"
+)
+
+func init() {
 	app.Name = "Create Kubeconfig CLI"
 	app.Usage = "An example how to create kube config"
 	app.Author = "verchol"
-	app.Version = "1.0.0"
+	app.Version = version
 }
 
 var app = cli.NewApp()

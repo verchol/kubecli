@@ -21,7 +21,7 @@ func Commands(app *cli.App) {
 			Aliases: []string{"version"},
 			Usage:   "create a new config",
 			Action: func(c *cli.Context) {
-				color.Green("cli info is %v\n", app.Usage)
+				color.Green("cli info is %v\n", app.Version)
 			},
 		},
 		{

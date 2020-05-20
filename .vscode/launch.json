@@ -13,7 +13,7 @@
             "mode": "auto",
             "program": "${fileDirname}",
             "env": {},
-            "args": ["ctx", "test-debug4", "--namespace", "test1"]
+            "args": ["list", "kind-weave"]
         }
     ]
 }
