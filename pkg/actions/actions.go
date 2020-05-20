@@ -59,10 +59,6 @@ func Commands(app *cli.App) {
 					Name:  "validate",
 					Usage: "used to validate cluster connectivity",
 				},
-				cli.BoolFlag{
-					Name:  "nocache",
-					Usage: "used to reinitiate conncectivity status",
-				},
 			},
 			Action: configtools.HandleSetContext,
 		},
@@ -103,8 +99,8 @@ func Commands(app *cli.App) {
 			Name:  "validate",
 			Usage: "used to validate cluster connectivity",
 		}, cli.BoolFlag{
-			Name:  "nocache",
-			Usage: "used to reinitiate conncectivity status",
+			Name:  "cache",
+			Usage: "take information from local cache file ",
 		},
 	}
 
@@ -173,6 +169,12 @@ func CreateContextAction(c *cli.Context) error {
 func TestClusterAction(c *cli.Context) error {
 	context := c.String("context")
 
+	if context == "" {
+		context = c.Args().First()
+	}
+
+	fmt.Printf("context is %v\n", context)
+
 	config, err := config.LoadConfig()
 	if err != nil {
 		panic(err)
@@ -204,12 +206,36 @@ func TestClusterAction(c *cli.Context) error {
 	works, err := configtools.ValidateCluster(waitingPeriod, namespace, clientSet)
 	Red := color.New(color.FgRed).SprintFunc()
 	Green := color.New(color.FgGreen).SprintFunc()
+
+	cache, err := configtools.NewLocalCache()
+
+	if err != nil {
+		panic(err)
+	}
+	kubeContext := configtools.KubeContext{}
+	kubeContext.Name = context
+	ns, _, _ := tempConfig.Namespace()
+	kubeContext.Namespace = ns
+	rawConfig, _ := config.RawConfig()
+	auth := rawConfig.Contexts[context].AuthInfo
+	authProvider := rawConfig.AuthInfos[auth].AuthProvider
+	if authProvider != nil {
+		kubeContext.AuthProvider = authProvider.Name
+	}
+	kubeContext.Status = configtools.ClusterAvailable
+
 	if !works {
 		fmt.Printf("context %v is not available \n%v :  %v\n", Green(context), Red("error:"), err)
-		return err
+		kubeContext.Status = configtools.ClusterNotAvailable
+
+	} else {
+		fmt.Printf("context %v is available\n", Green(context))
+		kubeContext.Status = configtools.ClusterAvailable
 	}
 
-	fmt.Printf("context %v is available\n", Green(context))
+	fmt.Printf("adding entry %v %v\n", kubeContext.Name, kubeContext.Status)
 
-	return nil
+	cache.AddEntry(context, &kubeContext)
+	cache.Flash()
+	return err
 }

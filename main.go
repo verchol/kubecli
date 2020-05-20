@@ -17,8 +17,8 @@ var (
 
 func init() {
 	app.Name = "Create Kubeconfig CLI"
-	app.Usage = "An example how to create kube config"
-	app.Author = "verchol"
+	app.Usage = "kubernetes context management utility"
+	app.Author = "Oleg Verhovsky"
 	app.Version = version
 }
 
@@ -34,7 +34,7 @@ func main() {
 	err := app.Run(os.Args)
 
 	if err != nil {
-		os.Exit(1)
+		panic(err)
 	}
 	return
 

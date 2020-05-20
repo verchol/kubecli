@@ -13,7 +13,12 @@
             "mode": "auto",
             "program": "${fileDirname}",
             "env": {},
+<<<<<<< HEAD
             "args": ["list", "kind-weave"]
+=======
+            "args": ["list"]
+            //"args": ["test", "--timeout", "20", "helm3demo"]
+>>>>>>> f990256f609702d8198bb5802e442218e5574adb
         }
     ]
 }

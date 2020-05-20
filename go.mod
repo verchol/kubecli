@@ -7,6 +7,7 @@ require (
 	github.com/docker/machine v0.16.2
 	github.com/fatih/color v1.8.0
 	github.com/imdario/mergo v0.3.8 // indirect
+	github.com/kyokomi/emoji v2.2.2+incompatible // indirect
 	github.com/micro/cli v0.2.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/urfave/cli v1.22.2
