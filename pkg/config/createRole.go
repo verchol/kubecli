@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	v1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -43,13 +44,25 @@ func (r *RoleOpts) validate() (*RoleOpts, error) {
 	return r, nil
 
 }
+func CludsterAdmin(r *RoleOpts) {
+	r.Verbs = []string{"create", "watch", "get", "list"}
+	r.Resources = []string{"*"}
+	r.ApiGroups = []string{"", "extensions", "apps"}
+}
+func Admin(name string, ns string) *RoleOpts {
+	r.Verbs = []string{"create", "watch", "get", "list"}
+	r.Resources = []string{"*"}
+	r.ApiGroups = []string{"", "extensions", "apps"}
+}
+
 func NewRoleOpts(name string, ns string) *RoleOpts {
 
 	r := RoleOpts{}
 	r.Name = name
 	r.Namespace = ns
 	r.Verbs = []string{"create", "watch", "get", "list"}
-	r.Resources = []string{"pods"}
+	r.Resources = []string{"pods", "deployments"}
+	r.ApiGroups = []string{"", "extensions", "apps"}
 
 	return &r
 
@@ -91,6 +104,22 @@ func (r *RoleBindingOpts) validate() (*RoleBindingOpts, error) {
 type roleOptsGen func(r *RoleOpts) *RoleOpts
 type roleBindingOptsGen func(r *RoleBindingOpts) *RoleBindingOpts
 
+//DeleteRole ...
+func DeleteRole(opts *RoleOpts, config clientcmd.ClientConfig) error {
+	c, err := config.ClientConfig()
+	if err != nil {
+		return err
+	}
+
+	restClient, err := kubernetes.NewForConfig(c)
+	if err != nil {
+		return err
+	}
+	dopts := metav1.DeleteOptions{}
+	err = restClient.RbacV1().Roles(opts.Namespace).Delete(opts.Name, &dopts)
+
+	return err
+}
 func CreateRole(opts *RoleOpts, config clientcmd.ClientConfig) (*v1.Role, error) {
 
 	c, err := config.ClientConfig()
@@ -99,23 +128,23 @@ func CreateRole(opts *RoleOpts, config clientcmd.ClientConfig) (*v1.Role, error)
 	}
 	restClient, err := kubernetes.NewForConfig(c)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	roleToCreate := v1.Role{}
 	roleToCreate.ObjectMeta.Name = opts.Name
 	roleToCreate.ObjectMeta.Namespace = opts.Namespace
 	policy := v1.PolicyRule{Verbs: opts.Verbs, Resources: opts.Resources,
-		APIGroups: []string{""}}
+		APIGroups: opts.ApiGroups}
 	roleToCreate.Rules = []v1.PolicyRule{policy}
 
 	role, err := restClient.RbacV1().Roles(opts.Namespace).Create(&roleToCreate)
 
 	if err != nil {
-		panic(err.Error())
+		return &roleToCreate, err
 	}
 
-	return role, err
+	return role, nil
 
 }
 

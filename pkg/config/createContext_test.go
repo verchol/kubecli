@@ -147,10 +147,10 @@ func TestCreateContext(t *testing.T) {
 
 }
 
-func TestCreateRole(t *testing.T) {
+func CreateRoleLogic(name string, ns string, config clientcmd.ClientConfig) (*RoleOpts, error) {
 	config, err := LoadConfig()
 
-	roleOpts := NewRoleOpts("myRole1", "test1")
+	roleOpts := NewRoleOpts(name, ns)
 	if err != nil {
 		panic(err)
 	}
@@ -160,8 +160,33 @@ func TestCreateRole(t *testing.T) {
 	}
 	fmt.Printf("role %v with rules %v\n", role.ObjectMeta.Name, role.Rules)
 
+	return roleOpts, err
 }
+func TestCreateRole(t *testing.T) {
 
+	config, err := LoadConfig()
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = CreateRoleLogic("role1", "test1", config)
+	if err != nil {
+		t.Error(err)
+	}
+}
+func TestDeleteRole(t *testing.T) {
+
+	config, err := LoadConfig()
+	opts, err := CreateRoleLogic("role1", "test1", config)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("role created %v %v succesfully ", opts.Name, opts.Namespace)
+	err = DeleteRole(opts, config)
+	if err != nil {
+		t.Error(err)
+	}
+
+}
 func TestCreateRoleBinding(t *testing.T) {
 	config, err := LoadConfig()
 

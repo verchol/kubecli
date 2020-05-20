@@ -51,8 +51,9 @@ func Commands(app *cli.App) {
 			Action: configtools.HandleSetContext,
 		},
 		{
-			Name:  "list",
-			Usage: "list context",
+			Name:    "list",
+			Usage:   "list context",
+			Aliases: []string{"ls"},
 			Flags: []cli.Flag{
 				cli.BoolFlag{
 					Name:  "validate",
@@ -87,6 +88,11 @@ func Commands(app *cli.App) {
 					Usage:    "used to define context's namespace",
 					Required: true,
 				},
+				cli.StringSliceFlag{
+					Name:     "verbs",
+					Usage:    "used to define what role to use",
+					Required: false,
+				},
 			},
 			Action: CreateContextAction,
 		},
@@ -109,12 +115,17 @@ func Commands(app *cli.App) {
 func CreateContextAction(c *cli.Context) error {
 
 	contextName := c.String("name")
+	if contextName == "" {
+		contextName = c.Args().First()
+	}
 	ns := c.String("namespace")
 	sa := fmt.Sprintf("sa-%v-%v", ns, contextName)
 	//_ := c.Bool("create")
 	//_ := c.String("permission")
 
 	log.Info(contextName, ns)
+	log.Info("verbs %v\n", c.StringSlice("verbs"))
+
 	config, err := configtools.LoadConfig()
 	if err != nil {
 		return err
@@ -123,13 +134,20 @@ func CreateContextAction(c *cli.Context) error {
 	role, err := configtools.CreateRole(roleOpts, config)
 
 	if err != nil {
-		panic(err)
+
+		//TODO identify when the error reason is "AlreadyExists"
+		//For now is skipping treating error
+
+		log.Error(err)
 	}
 
 	saObj, err := configtools.CreateServiceAccount(ns, sa, config)
 
 	if err != nil {
-		return err
+		//TODO identify when the error reason is "AlreadyExists"
+		//For now is skipping treating error
+
+		log.Error(err)
 	}
 
 	roleBindingOpts := configtools.NewRoleBindingOpts(fmt.Sprintf("rb1-%v-%v", sa, ns), ns)
@@ -139,7 +157,10 @@ func CreateContextAction(c *cli.Context) error {
 
 	_, err = configtools.CreateRoleBinding(roleBindingOpts, config)
 	if err != nil {
-		panic(err)
+		//TODO identify when the error reason is "AlreadyExists"
+		//For now is skipping treating error
+
+		log.Error(err)
 	}
 
 	err = configtools.CreateContext(contextName, ns, string(saObj.Token), config)

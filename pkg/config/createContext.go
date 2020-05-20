@@ -6,6 +6,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -21,30 +22,53 @@ func CreateServiceAccount(namespace string, name string, config clientcmd.Client
 
 	c, err := config.ClientConfig()
 	if err != nil {
-		panic(err)
+		return ServiceAccount{}, err
 	}
 	restClient, err := kubernetes.NewForConfig(c)
 	if err != nil {
-		panic(err)
+		return ServiceAccount{}, err
 	}
 	spec := &v1.ServiceAccount{}
 	spec.Name = name
 	createdSa, err := restClient.CoreV1().ServiceAccounts(namespace).Create(spec)
 	if err != nil {
-		panic(err.Error())
+		return ServiceAccount{}, err
 	}
-	sa, err := restClient.CoreV1().ServiceAccounts(namespace).Get(createdSa.Name, metav1.GetOptions{})
+	watchOpts := metav1.ListOptions{}
+	watcher, err := restClient.CoreV1().ServiceAccounts(namespace).Watch(watchOpts)
+	if err != nil {
+		return ServiceAccount{}, err
+	}
+	eventChan := watcher.ResultChan()
+	for {
+		var end bool
+
+		select {
+		case event := <-eventChan:
+			fmt.Printf("event %v %v\n", event.Type, event.Object.GetObjectKind())
+			if event.Type == watch.Modified {
+				fmt.Printf("stop the loop \n")
+				end = true
+				break
+			}
+		default:
+			//fmt.Printf("no value ")
+		}
+		if end {
+			break
+		}
+	}
+	fmt.Printf("after loop\n")
+
+	getOptions := metav1.GetOptions{ResourceVersion: ""}
+	sa, err := restClient.CoreV1().ServiceAccounts(namespace).Get(createdSa.Name, getOptions)
 	fmt.Printf("sa = %v", sa)
+
 	secrets := sa.Secrets
 	if len(secrets) == 0 {
 		panic(errors.New("no secrets associated with service account"))
 	}
 	s := secrets[0]
-
-	if len(secrets) == 0 {
-		panic(errors.New("no secretes associated with sa"))
-	}
-
 	token := getSecretToken(restClient, namespace, s.Name)
 	fmt.Printf("secret %v \n token %v\n", s.Name, token)
 
