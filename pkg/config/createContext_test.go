@@ -12,6 +12,7 @@ import (
 
 const token = "ZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklpSjkuZXlKcGMzTWlPaUpyZFdKbGNtNWxkR1Z6TDNObGNuWnBZMlZoWTJOdmRXNTBJaXdpYTNWaVpYSnVaWFJsY3k1cGJ5OXpaWEoyYVdObFlXTmpiM1Z1ZEM5dVlXMWxjM0JoWTJVaU9pSjBaWE4wTVNJc0ltdDFZbVZ5Ym1WMFpYTXVhVzh2YzJWeWRtbGpaV0ZqWTI5MWJuUXZjMlZqY21WMExtNWhiV1VpT2lKa1pXWmhkV3gwTFhSdmEyVnVMV2cxTlRod0lpd2lhM1ZpWlhKdVpYUmxjeTVwYnk5elpYSjJhV05sWVdOamIzVnVkQzl6WlhKMmFXTmxMV0ZqWTI5MWJuUXVibUZ0WlNJNkltUmxabUYxYkhRaUxDSnJkV0psY201bGRHVnpMbWx2TDNObGNuWnBZMlZoWTJOdmRXNTBMM05sY25acFkyVXRZV05qYjNWdWRDNTFhV1FpT2lKaE1HUTNNR0l4WlMwMlltTmpMVEV4WldFdFlUQXhaUzFqTmpNNFptRmhNamc0TTJNaUxDSnpkV0lpT2lKemVYTjBaVzA2YzJWeWRtbGpaV0ZqWTI5MWJuUTZkR1Z6ZERFNlpHVm1ZWFZzZENKOS52QUxoUHEySlNnRnFYZFYzaGJRM2ZCWVlSN0ZPa1RVWExzSkw2d3NNSG5QUGJwam80TVppZncxOUdsRy14SG1FaHVEZjlRSkY5REhlVk9fQ3M0eW5NNFFiY0FCMkplSmhQbXNYalVQenBIQjRORnJvRldXbWFaTm50UlNCQVFRdzQ2WVdsYzRzbFFrY21ZTkc2X3FVMmtCdjdjaUt2bzZNckRGTk9BUHg4MzFSV3N1N01MNGRfSHprNnFTdGtpZ1VJaVNUbm9Gb3BJdXhJeTI3OGJkYzVHWTEzaExlbkZHa0ZyVmUyczJISkVmcDZwaVFOUXJUVnVpYUF5LXdiQ0lrSDU3cnpxc3JxUHM1RHZQQkhnM3hRYUhMVXA3YjdGdHNtMTQ0VXl0d2pjN2ExRC0tbkNnM0NwQzJJQUxuLWIzWFRfVElFMVhNRUZROFBVdjFQZjFtYXlOVzZQVTlnaV9VZklHaGt4SXlydWFMRnUzd0l0azRrQVRmdFZMOU90NmIwMGFDZElqUkstVllmSnVweHlfX2kxTHAwWDhGYzhvYlFMdzFrWndmVlZzTVJRVXVIQ05uOVBDRkdSMWloVkZGMHRfSDNiQ3F4MEJEWjc4N1l0QlVIZ3dEVVpXbmtPUlNCYUdCcWdmNXUwdk1vWkhINFN1dm1qOTRVZGE4ZWg1VzFmb3F4ZlUzYXlwLS0xT09lSE03aFpHZVdzNVZtZnFXdnB4TU1Gb3EtNnBYM1ZYTllScVc0UTFHNWhUVFozaW5aeWxRQmQyVHRkeVRtSDR1R3lLb0VvMlF6NWRGbXRNNUZsV0dWRzlrRTZJY2NOeDhpYkR5aDZ6QV9hU0RhTnozY2RUVkpHZTNETV9TTVhsbUZzNTRiLWl2ai0zaGxTckFaRFRudWZJaTZBaw=="
 
+<<<<<<< HEAD
 func TestPrintLocalCache(t *testing.T) {
 	ListContextFromCache()
 }
@@ -24,10 +25,16 @@ func TestListContexts(t *testing.T) {
 }
 func TestLocalCache(t *testing.T) {
 	c, _ := NewLocalCache()
+=======
+func TestLoadWithRules(t *testing.T) {
+
+	//os.Setenv("KUBECONFIG", "/Users/verchol/dev/projects/kubecli/testdata/oketoconfig.yaml")
+>>>>>>> 6cc756905063859f67e92bf6c68a7d49efa91569
 	config, err := LoadConfig()
 	if err != nil {
 		panic(err)
 	}
+<<<<<<< HEAD
 	r, _ := config.RawConfig()
 	context := r.Contexts[r.CurrentContext]
 	kubeCtx := KubeContext{}
@@ -43,6 +50,16 @@ func TestLocalCache(t *testing.T) {
 		fmt.Printf("cache  %v %v", k, v)
 	}
 	c.Reset()
+=======
+	rawConfig, err := config.RawConfig()
+
+	fmt.Printf("default context is %v \n", rawConfig.CurrentContext)
+	contexts := rawConfig.Contexts
+
+	for name, _ := range contexts {
+		fmt.Printf("context is %v \n", name)
+	}
+>>>>>>> 6cc756905063859f67e92bf6c68a7d49efa91569
 
 }
 func TestCluster(t *testing.T) {
