@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	v1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -29,20 +30,44 @@ func TestLoadWithRules(t *testing.T) {
 	}
 
 }
-func TestCluster(t *testing.T) {
-	contextToTest := "context5"
+func TestLocalCache(t *testing.T) {
+	c, _ := NewLocalCache()
 
 	config, err := LoadConfig()
+	r, _ := config.RawConfig()
+
+	context := r.Contexts[r.CurrentContext]
+	kubeCtx := KubeContext{}
+	kubeCtx.Name = r.CurrentContext
+	kubeCtx.Namespace = context.Namespace
+	kubeCtx.AuthProvider = context.AuthInfo
+
+	_, err = c.AddEntry("t4", &kubeCtx).Flash()
 	if err != nil {
 		panic(err)
 	}
-	r, _ := config.RawConfig()
+	for k, v := range c.cache {
+		fmt.Printf("cache  %v %v", k, v)
+	}
+	c.Reset()
 
+}
+func TestCluster(t *testing.T) {
+
+	config, err := LoadConfig()
+	if err != nil {
+		fmt.Printf("can't load config")
+		panic(err)
+	}
+	r, _ := config.RawConfig()
+	contextToTest := r.CurrentContext
+	fmt.Printf("context for validation %v \n", contextToTest)
 	tempConfig := clientcmd.NewDefaultClientConfig(r,
 		&clientcmd.ConfigOverrides{CurrentContext: contextToTest})
 
 	namespace, _, err := tempConfig.Namespace()
 	if err != nil {
+		fmt.Printf("something wrong with context %v \n", contextToTest)
 		panic(err)
 	}
 
@@ -69,14 +94,14 @@ func TestCluster(t *testing.T) {
 }
 func TestRoleOpts(t *testing.T) {
 
-	role := NewRoleOpts("role1", "test1")
-	roleBinding := NewRoleBindingOpts("rb1", "test1")
+	role := NewRoleOpts("role1", GlobalContext.Namespace)
+	roleBinding := NewRoleBindingOpts("rb1", GlobalContext.Namespace)
 	roleBinding.Role = role.Name
 	roleBinding.ServiceAccount = "testsa1"
-	roleBinding.ServiceAccountNs = "test1"
+	roleBinding.ServiceAccountNs = GlobalContext.Namespace
 
 }
-func TestServiceAccount(t *testing.T) {
+func testServiceAccount(t *testing.T) {
 	//	sa, err := createServiceAccount("default", "sa3")
 	sa, err := getServiceAccount("default", "default")
 	fmt.Printf("%v %v", sa.Secrets, err)
@@ -86,48 +111,67 @@ func TestCreateServiceAccount(t *testing.T) {
 
 	config, err := LoadConfig()
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
+	namespace := "testsans"
 	serviceAccountName := "testsa7"
-	sa, err := CreateServiceAccount("test1", serviceAccountName, config)
+	contextToTest := "sa3ctx"
+
+	CreateNamespace(namespace, config)
+	defer func() error {
+		err := DeleteNamespace(namespace, config)
+		return err
+	}()
+	sa, err := CreateServiceAccount(namespace, serviceAccountName, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	fmt.Printf("service account %v token- %v err- %v\n",
 		sa.Sa.Name, sa.Token, err)
 
-	roleOpts := NewRoleOpts(fmt.Sprintf("role-%v", serviceAccountName), "test1")
+	roleOpts := NewRoleOpts(fmt.Sprintf("role-%v", serviceAccountName), namespace)
 	role, err := CreateRole(roleOpts, config)
 
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
-	roleBindingOpts := NewRoleBindingOpts(fmt.Sprintf("rb1-%v", serviceAccountName), "test1")
+	roleBindingOpts := NewRoleBindingOpts(fmt.Sprintf("rb1-%v", serviceAccountName), namespace)
 	roleBindingOpts.Role = role.Name
 	roleBindingOpts.ServiceAccount = serviceAccountName
-	roleBindingOpts.ServiceAccountNs = "test1"
+	roleBindingOpts.ServiceAccountNs = namespace
 
 	_, err = CreateRoleBinding(roleBindingOpts, config)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
-	err = CreateContext("sa3ctx", "test1", string(sa.Token), config)
+	err = CreateContext(contextToTest, namespace, string(sa.Token), config)
 
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
+
+	//_, err = SetNewCurrentContext(config, restoreContext)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = DeleteContexts([]string{contextToTest}, config, true)
 
 }
 func TestConnection(t *testing.T) {
-	config, err := LoadConfig()
-	if err != nil {
-		panic(err)
-	}
+	config := GlobalContext.Config
+	namespace := GlobalContext.Namespace
+
 	clientConfig, _ := config.ClientConfig()
 	restClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		panic(err)
 	}
 
-	pods, err := restClient.CoreV1().Pods("test1").List(metav1.ListOptions{})
+	pods, err := restClient.CoreV1().Pods(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		panic(err.Error())
 	}
@@ -135,73 +179,203 @@ func TestConnection(t *testing.T) {
 }
 func TestCreateContext(t *testing.T) {
 	config, err := LoadConfig()
-	ns := "test1"
+	if err != nil {
+		t.Fatal(err)
+	}
 	name := "ctx1"
+	namespace := "testcreatecontexts"
+
+	currentCtx, err := config.RawConfig()
+
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
-	err = CreateContext(name, ns, token, config)
+	restoreContext := currentCtx.CurrentContext
+
+	err = CreateContext(name, namespace, token, GlobalContext.Config)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
+
+	_, err = SetNewCurrentContext(config, restoreContext)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	DeleteNamespace(namespace, config)
+	DeleteContexts([]string{name}, config, false)
 
 }
 
-func CreateRoleLogic(name string, ns string, config clientcmd.ClientConfig) (*RoleOpts, error) {
-	config, err := LoadConfig()
+func TestClusterRoleCreate(t *testing.T) {
+	config := GlobalContext.Config
+	_, err := CreateClusterRoleLogic(config)
 
-	roleOpts := NewRoleOpts(name, ns)
-	if err != nil {
-		panic(err)
-	}
-	role, err := CreateRole(roleOpts, config)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("role %v with rules %v\n", role.ObjectMeta.Name, role.Rules)
-
-	return roleOpts, err
-}
-func TestCreateRole(t *testing.T) {
-
-	config, err := LoadConfig()
 	if err != nil {
 		t.Error(err)
 	}
-	_, err = CreateRoleLogic("role1", "test1", config)
+	t.Log("succesfully created")
+	DeleteClusterRoleLogic()
+}
+func TestCreateRole(t *testing.T) {
+
+	_, err := CreateRoleLogic("role1", GlobalContext.Namespace, GlobalContext.Config)
 	if err != nil {
 		t.Error(err)
 	}
 }
 func TestDeleteRole(t *testing.T) {
 
-	config, err := LoadConfig()
-	opts, err := CreateRoleLogic("role1", "test1", config)
+	config := GlobalContext.Config
+	opts, err := CreateRoleLogic("role1", GlobalContext.Namespace, GlobalContext.Config)
 	if err != nil {
-		t.Error(err)
+		t.Log(err)
+		return
 	}
 	t.Logf("role created %v %v succesfully ", opts.Name, opts.Namespace)
 	err = DeleteRole(opts, config)
 	if err != nil {
-		t.Error(err)
+		t.Log(err)
+		return
 	}
 
 }
 func TestCreateRoleBinding(t *testing.T) {
-	config, err := LoadConfig()
+	config := GlobalContext.Config
 
-	roleBindingOpts := NewRoleBindingOpts("myrb1", "test1")
+	roleBindingOpts := NewRoleBindingOpts("myrb1", GlobalContext.Namespace)
 	roleBindingOpts.Role = "myRole1"
 	roleBindingOpts.ServiceAccount = "sa1"
 	roleBindingOpts.ServiceAccountNs = "test1"
 
-	if err != nil {
-		panic(err)
-	}
 	rb, err := CreateRoleBinding(roleBindingOpts, config)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	fmt.Printf("roleBindings %v for role %vwith subjects %v\n", rb.ObjectMeta.Name, rb.RoleRef.Name, rb.Subjects)
 
+}
+
+func TestCreateAdminContext(t *testing.T) {
+	config := GlobalContext.Config
+	err := CreateAdminContext("context4TestKubecli", GlobalContext.Namespace, config)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+}
+func CreateRoleLogic(name string, ns string, config clientcmd.ClientConfig) (*RoleOpts, error) {
+
+	roleOpts := NewRoleOpts(name, ns)
+
+	role, err := CreateRole(roleOpts, config)
+
+	if err != nil {
+		return roleOpts, err
+	}
+	fmt.Printf("role %v with rules %v\n", role.ObjectMeta.Name, role.Rules)
+
+	return roleOpts, nil
+}
+func CreateClusterRoleLogic(config clientcmd.ClientConfig) (*v1.ClusterRole, error) {
+
+	role, err := NewDefaultClusterRole(config)
+
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("role %v with rules %v\n", role.ObjectMeta.Name, role.Rules)
+
+	return role, err
+}
+
+func DeleteClusterRoleLogic() {
+
+	config := GlobalContext.Config
+	DeleteAdminClusterRole(config)
+
+}
+func CreateAdminContext(contextToCreate string, ns string, config clientcmd.ClientConfig) error {
+
+	//consider add session number in the future
+	serviceAccountName := "testingadmin"
+	namespace := ns
+	role := "kubecliAdminRole"
+
+	CreateNamespace(namespace, config)
+
+	sa, err := CreateServiceAccount(namespace, serviceAccountName, config)
+	if err != nil {
+		return err
+	}
+
+	clusterRole, err := NewClusterRole(role, config)
+
+	if err != nil {
+		return err
+	}
+
+	roleBindingOpts := NewRoleBindingOpts(fmt.Sprintf("rb1-%v", serviceAccountName), namespace)
+	roleBindingOpts.Role = clusterRole.Name
+	roleBindingOpts.ServiceAccount = serviceAccountName
+	roleBindingOpts.ServiceAccountNs = namespace
+
+	_, err = CreateClusterRoleBinding(roleBindingOpts, config)
+	if err != nil {
+		return err
+	}
+	err = CreateContext(contextToCreate, namespace, string(sa.Token), config)
+
+	return err
+
+}
+func CreateAdminServiceAccount() {
+
+}
+func DeleteAdminServiceAccount() {
+
+}
+
+type GlobalTestContext struct {
+	Config    clientcmd.ClientConfig
+	Namespace string
+}
+
+var GlobalContext GlobalTestContext
+
+func SetupTestContext(testContextName string, ns string) error {
+	config, err := LoadConfig()
+	if err != nil {
+		fmt.Printf("warning %v\n", err)
+	}
+	err = CreateAdminContext(testContextName, ns, config)
+	if err != nil {
+		fmt.Printf("warning %v\n", err)
+	}
+	err = CreateNamespace(ns, config)
+	if err != nil {
+		fmt.Printf("warning %v\n", err)
+	}
+	err = SetNamespaceToContext(ns, config)
+	if err != nil {
+		fmt.Printf("warning %v\n", err)
+	}
+
+	GlobalContext = GlobalTestContext{config, ns}
+	return err
+}
+
+func DeleteTestContext(testContextName string, ns string) error {
+	config := GlobalContext.Config
+	fmt.Printf("End of test execution , deleting context %v\n", testContextName)
+
+	err := DeleteNamespace(ns, config)
+	if err != nil {
+		return err
+	}
+	err = DeleteContexts([]string{testContextName}, config, false)
+
+	return err
 }

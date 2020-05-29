@@ -10,6 +10,7 @@ require (
 	github.com/kyokomi/emoji v2.2.2+incompatible // indirect
 	github.com/micro/cli v0.2.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.4
+	github.com/stretchr/testify v1.4.0
 	github.com/urfave/cli v1.22.2
 	golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876 // indirect
 	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 // indirect

@@ -7,10 +7,9 @@ import (
 	"sort"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
-
-	"io/ioutil"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -171,7 +170,8 @@ func HandleDeleteContext(c *cli.Context) error {
 		arg := args.Get(i)
 		_, ok := rawConfig.Contexts[arg]
 		if !ok {
-			return fmt.Errorf("cannot find context %s", arg)
+			fmt.Printf("nothing to delete - cannot find context %s\n", red(arg))
+			continue
 		}
 
 		if rawConfig.CurrentContext == arg {
@@ -382,4 +382,83 @@ type FlagOptions struct {
 	List     bool
 	Validate bool
 	Cache    bool
+}
+
+func CreateNamespace(ns string, config clientcmd.ClientConfig) error {
+	c, err := config.ClientConfig()
+	if err != nil {
+		return err
+	}
+	restClient, err := kubernetes.NewForConfig(c)
+	if err != nil {
+		return err
+	}
+	nsSpec := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}}
+
+	_, err = restClient.CoreV1().Namespaces().Create(nsSpec)
+	return err
+}
+
+//DeleteNamespace
+func DeleteNamespace(ns string, config clientcmd.ClientConfig) error {
+	c, err := config.ClientConfig()
+	if err != nil {
+		return err
+	}
+	restClient, err := kubernetes.NewForConfig(c)
+	if err != nil {
+		return err
+	}
+
+	err = restClient.CoreV1().Namespaces().Delete(ns, &metav1.DeleteOptions{})
+	return err
+}
+
+func CreateTestAdminContext() {
+
+}
+
+//DeleteContexts
+func DeleteContexts(contexts []string, config clientcmd.ClientConfig, modifyFile bool) error {
+
+	rawConfig, err := config.RawConfig()
+	if err != nil {
+
+	}
+	for _, ctx := range contexts {
+
+		_, ok := rawConfig.Contexts[ctx]
+		if !ok {
+			fmt.Printf("nothing to delete - cannot find context %s\n", ctx)
+			continue
+		}
+
+		delete(rawConfig.Contexts, ctx)
+		fmt.Printf("\ncontext %s deleted\n", ctx)
+	}
+	if !modifyFile {
+		return err
+	}
+
+	if err := clientcmd.ModifyConfig(config.ConfigAccess(), rawConfig, true); err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func SetNamespaceToContext(ns string, config clientcmd.ClientConfig) error {
+
+	rawConfig, err := config.RawConfig()
+	if err != nil {
+		return err
+	}
+	currentCtxName := rawConfig.CurrentContext
+	context := rawConfig.Contexts[currentCtxName]
+	context.Namespace = ns
+
+	err = clientcmd.ModifyConfig(config.ConfigAccess(), rawConfig, false)
+
+	return err
 }

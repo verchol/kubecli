@@ -24,6 +24,7 @@ func CreateServiceAccount(namespace string, name string, config clientcmd.Client
 	if err != nil {
 		return ServiceAccount{}, err
 	}
+
 	restClient, err := kubernetes.NewForConfig(c)
 	if err != nil {
 		return ServiceAccount{}, err
@@ -39,34 +40,37 @@ func CreateServiceAccount(namespace string, name string, config clientcmd.Client
 	if err != nil {
 		return ServiceAccount{}, err
 	}
+	skip := false
+	if len(createdSa.Secrets) != 0 {
+		skip = true
+	}
 	eventChan := watcher.ResultChan()
-	for {
-		var end bool
+	var sa *v1.ServiceAccount
+	for !skip {
 
 		select {
 		case event := <-eventChan:
-			fmt.Printf("event %v %v\n", event.Type, event.Object.GetObjectKind())
-			if event.Type == watch.Modified {
+			fmt.Printf("event %v %v\n", event.Type, event.Object)
+			sa = event.Object.(*v1.ServiceAccount)
+			if (event.Type == watch.Modified || event.Type == watch.Added) && (len(sa.Secrets) > 0) {
 				fmt.Printf("stop the loop \n")
-				end = true
+				skip = true
 				break
 			}
 		default:
 			//fmt.Printf("no value ")
 		}
-		if end {
-			break
-		}
+
 	}
 	fmt.Printf("after loop\n")
 
-	getOptions := metav1.GetOptions{ResourceVersion: ""}
-	sa, err := restClient.CoreV1().ServiceAccounts(namespace).Get(createdSa.Name, getOptions)
-	fmt.Printf("sa = %v", sa)
+	//getOptions := metav1.GetOptions{ResourceVersion: ""}
+	//sa, err := restClient.CoreV1().ServiceAccounts(namespace).Get(createdSa.Name, getOptions)
+	//fmt.Printf("sa = %v", sa)
 
 	secrets := sa.Secrets
 	if len(secrets) == 0 {
-		panic(errors.New("no secrets associated with service account"))
+		return ServiceAccount{}, errors.New("no secret associated with service accoutn")
 	}
 	s := secrets[0]
 	token := getSecretToken(restClient, namespace, s.Name)

@@ -40,6 +40,7 @@ const LocalCacheFileName = ".status-test-cache"
 var LocalCacheFile string
 
 const LocalCacheSize = 100
+const ResetCache = "10" // in minutes
 
 type LocalCache struct {
 	cachePath string
@@ -82,6 +83,10 @@ func (c *LocalCache) Create() error {
 	}
 
 	fmt.Printf("\ncreating cache file %v\n\n", LocalCacheFile)
+	err = os.MkdirAll(path.Dir(LocalCacheFile), os.ModePerm)
+	if err != nil {
+		return err
+	}
 	_, err = os.Create(LocalCacheFile)
 
 	return err

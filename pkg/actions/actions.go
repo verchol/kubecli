@@ -41,14 +41,21 @@ func Commands(app *cli.App) {
 			Action: TestClusterAction,
 		},
 		{
+			Name:    "namespace",
+			Aliases: []string{"ns"},
+			Usage:   "set new namespace for context",
+			Action:  SetContextNamespaceAction,
+		},
+		{
 			Name:   "delete",
 			Usage:  "delete context",
 			Action: configtools.HandleDeleteContext,
 		},
 		{
-			Name:   "switch",
-			Usage:  "change context to new one",
-			Action: configtools.HandleSetContext,
+			Name:    "switch",
+			Aliases: []string{"s"},
+			Usage:   "change context to new one",
+			Action:  configtools.HandleSetContext,
 		},
 		{
 			Name:    "list",
@@ -237,5 +244,29 @@ func TestClusterAction(c *cli.Context) error {
 
 	cache.AddEntry(context, &kubeContext)
 	cache.Flash()
+	return err
+}
+
+func SetContextNamespaceAction(c *cli.Context) error {
+
+	ns := c.Args().First()
+
+	config, err := config.LoadConfig()
+	if err != nil {
+		return err
+	}
+
+	rawConfig, err := config.RawConfig()
+	if err != nil {
+		return err
+	}
+	currentCtxName := rawConfig.CurrentContext
+	context := rawConfig.Contexts[currentCtxName]
+	context.Namespace = ns
+
+	err = clientcmd.ModifyConfig(config.ConfigAccess(), rawConfig, false)
+
+	fmt.Printf("context %v was updated with namespace %v \n", currentCtxName, ns)
+
 	return err
 }
