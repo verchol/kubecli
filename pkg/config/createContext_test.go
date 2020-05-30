@@ -184,27 +184,21 @@ func TestCreateContext(t *testing.T) {
 	}
 	name := "ctx1"
 	namespace := "testcreatecontexts"
-
-	currentCtx, err := config.RawConfig()
-
-	if err != nil {
-		t.Fatal(err)
-	}
-	restoreContext := currentCtx.CurrentContext
-
-	err = CreateContext(name, namespace, token, GlobalContext.Config)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = SetNewCurrentContext(config, restoreContext)
+	c, err := config.RawConfig()
+	restoreContext := c.CurrentContext
 
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	DeleteNamespace(namespace, config)
-	DeleteContexts([]string{name}, config, false)
+	err = CreateContext(name, namespace, token, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		SetNewCurrentContext(config, restoreContext)
+		DeleteNamespace(namespace, config)
+		DeleteContexts([]string{name}, config, true)
+	}()
 
 }
 
@@ -218,14 +212,14 @@ func TestClusterRoleCreate(t *testing.T) {
 	t.Log("succesfully created")
 	DeleteClusterRoleLogic()
 }
-func TestCreateRole(t *testing.T) {
+func TestCreateRoleWithoutDelete(t *testing.T) {
 
 	_, err := CreateRoleLogic("role1", GlobalContext.Namespace, GlobalContext.Config)
 	if err != nil {
 		t.Error(err)
 	}
 }
-func TestDeleteRole(t *testing.T) {
+func TestCreateRole(t *testing.T) {
 
 	config := GlobalContext.Config
 	opts, err := CreateRoleLogic("role1", GlobalContext.Namespace, GlobalContext.Config)
@@ -258,12 +252,39 @@ func TestCreateRoleBinding(t *testing.T) {
 }
 
 func TestCreateAdminContext(t *testing.T) {
-	config := GlobalContext.Config
-	err := CreateAdminContext("context4TestKubecli", GlobalContext.Namespace, config)
+	var config clientcmd.ClientConfig
+	if GlobalContext.Config == nil {
+		var err error
+		config, err = LoadConfig()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+	} else {
+		config = GlobalContext.Config
+	}
+
+	c, err := config.RawConfig()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	restoreContext := c.CurrentContext
+
+	contextName := "ctxadmin"
+	namespace := "admin1"
+
+	err = CreateAdminContext(contextName, namespace, config)
 
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	defer func() {
+		SetNewCurrentContext(config, restoreContext)
+		DeleteNamespace(namespace, config)
+		DeleteContexts([]string{contextName}, config, true)
+	}()
 
 }
 func CreateRoleLogic(name string, ns string, config clientcmd.ClientConfig) (*RoleOpts, error) {
@@ -297,38 +318,9 @@ func DeleteClusterRoleLogic() {
 	DeleteAdminClusterRole(config)
 
 }
-func CreateAdminContext(contextToCreate string, ns string, config clientcmd.ClientConfig) error {
+func CreateTestAdminContext(contextToCreate string, namespace string, config clientcmd.ClientConfig) error {
 
-	//consider add session number in the future
-	serviceAccountName := "testingadmin"
-	namespace := ns
-	role := "kubecliAdminRole"
-
-	CreateNamespace(namespace, config)
-
-	sa, err := CreateServiceAccount(namespace, serviceAccountName, config)
-	if err != nil {
-		return err
-	}
-
-	clusterRole, err := NewClusterRole(role, config)
-
-	if err != nil {
-		return err
-	}
-
-	roleBindingOpts := NewRoleBindingOpts(fmt.Sprintf("rb1-%v", serviceAccountName), namespace)
-	roleBindingOpts.Role = clusterRole.Name
-	roleBindingOpts.ServiceAccount = serviceAccountName
-	roleBindingOpts.ServiceAccountNs = namespace
-
-	_, err = CreateClusterRoleBinding(roleBindingOpts, config)
-	if err != nil {
-		return err
-	}
-	err = CreateContext(contextToCreate, namespace, string(sa.Token), config)
-
-	return err
+	return CreateAdminContext(contextToCreate, namespace, config)
 
 }
 func CreateAdminServiceAccount() {

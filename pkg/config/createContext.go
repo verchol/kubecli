@@ -3,6 +3,9 @@ package config
 import (
 	"errors"
 	"fmt"
+	"strings"
+
+	"log"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -147,4 +150,90 @@ func CreateContext(contextName string, namespace string, satoken string, config 
 	err = clientcmd.ModifyConfig(config.ConfigAccess(), rawConfig, true)
 
 	return err
+}
+
+//CreateNonAdminContext ...
+func CreateNonAdminContext(contextName string, namespace string, config clientcmd.ClientConfig) error {
+
+	sa := fmt.Sprintf("sa-%v-%v", namespace, contextName)
+	roleOpts := NewRoleOpts(fmt.Sprintf("role-%v-%v", sa, namespace), namespace)
+	role, err := CreateRole(roleOpts, config)
+
+	if err != nil {
+
+		//TODO identify when the error reason is "AlreadyExists"
+		//For now is skipping treating error
+
+		//log.Fatal(err)
+		//return err
+
+	}
+
+	CreateNamespace(namespace, config)
+
+	saObj, err := CreateServiceAccount(namespace, sa, config)
+
+	if err != nil {
+		//TODO identify when the error reason is "AlreadyExists"
+		//For now is skipping treating error
+
+		log.Fatal(err)
+		return err
+	}
+
+	roleBindingOpts := NewRoleBindingOpts(fmt.Sprintf("rb1-%v-%v", sa, namespace), namespace)
+	roleBindingOpts.Role = role.Name
+	roleBindingOpts.ServiceAccount = sa
+	roleBindingOpts.ServiceAccountNs = namespace
+
+	_, err = CreateRoleBinding(roleBindingOpts, config)
+	if err != nil {
+		//TODO identify when the error reason is "AlreadyExists"
+		//For now is skipping treating error
+		//log.Fatal(err)
+	}
+
+	err = CreateContext(contextName, namespace, string(saObj.Token), config)
+
+	return err
+}
+
+//CreateAdminContext ...
+func CreateAdminContext(contextToCreate string, namespace string, config clientcmd.ClientConfig) error {
+
+	//consider add session number in the future
+
+	serviceAccountName := fmt.Sprintf("sa%v%v", namespace, contextToCreate)
+	serviceAccountName = strings.ToLower(serviceAccountName)
+	clusterRoleName := fmt.Sprintf("clusterrole_%v_%v", namespace, contextToCreate)
+	clusterRoleName = strings.ToLower(clusterRoleName)
+
+	CreateNamespace(namespace, config)
+
+	sa, err := CreateServiceAccount(namespace, serviceAccountName, config)
+	if err != nil {
+		//TODO identify already exists
+		//return err
+	}
+
+	clusterRole, err := NewClusterRole(clusterRoleName, config)
+
+	if err != nil {
+		//TODO identify already exists
+		//return err
+	}
+
+	roleBindingOpts := NewRoleBindingOpts(fmt.Sprintf("rb1-%v", serviceAccountName), namespace)
+	roleBindingOpts.Role = clusterRole.Name
+	roleBindingOpts.ServiceAccount = serviceAccountName
+	roleBindingOpts.ServiceAccountNs = namespace
+
+	_, err = CreateClusterRoleBinding(roleBindingOpts, config)
+	if err != nil {
+		//return err
+	}
+	err = CreateContext(contextToCreate, namespace, string(sa.Token), config)
+
+	return err
+
 }

@@ -90,6 +90,10 @@ func Commands(app *cli.App) {
 					Name:     "namespace",
 					Usage:    "used to define context's namespace",
 					Required: true,
+				}, cli.StringFlag{
+					Name:     "role",
+					Usage:    "used to define role assigned to context , default is admin",
+					Required: false,
 				},
 				cli.StringSliceFlag{
 					Name:     "verbs",
@@ -122,7 +126,15 @@ func CreateContextAction(c *cli.Context) error {
 		contextName = c.Args().First()
 	}
 	ns := c.String("namespace")
-	sa := fmt.Sprintf("sa-%v-%v", ns, contextName)
+	role := c.String("role")
+
+	if ns != "" {
+		role = "nonAdmin"
+	}
+
+	if role == "" || role == "admin" {
+		role = "Admin"
+	}
 	//_ := c.Bool("create")
 	//_ := c.String("permission")
 
@@ -133,42 +145,12 @@ func CreateContextAction(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	roleOpts := configtools.NewRoleOpts(fmt.Sprintf("role-%v-%v", sa, ns), ns)
-	role, err := configtools.CreateRole(roleOpts, config)
-
-	if err != nil {
-
-		//TODO identify when the error reason is "AlreadyExists"
-		//For now is skipping treating error
-
-		log.Error(err)
+	if role == "Admin" {
+		err := configtools.CreateAdminContext(contextName, ns, config)
+		return err
 	}
 
-	saObj, err := configtools.CreateServiceAccount(ns, sa, config)
-
-	if err != nil {
-		//TODO identify when the error reason is "AlreadyExists"
-		//For now is skipping treating error
-
-		log.Error(err)
-	}
-
-	roleBindingOpts := configtools.NewRoleBindingOpts(fmt.Sprintf("rb1-%v-%v", sa, ns), ns)
-	roleBindingOpts.Role = role.Name
-	roleBindingOpts.ServiceAccount = sa
-	roleBindingOpts.ServiceAccountNs = ns
-
-	_, err = configtools.CreateRoleBinding(roleBindingOpts, config)
-	if err != nil {
-		//TODO identify when the error reason is "AlreadyExists"
-		//For now is skipping treating error
-
-		log.Error(err)
-	}
-
-	err = configtools.CreateContext(contextName, ns, string(saObj.Token), config)
-
-	return err
+	return configtools.CreateNonAdminContext(contextName, ns, config)
 
 }
 

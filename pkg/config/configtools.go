@@ -414,10 +414,6 @@ func DeleteNamespace(ns string, config clientcmd.ClientConfig) error {
 	return err
 }
 
-func CreateTestAdminContext() {
-
-}
-
 //DeleteContexts
 func DeleteContexts(contexts []string, config clientcmd.ClientConfig, modifyFile bool) error {
 

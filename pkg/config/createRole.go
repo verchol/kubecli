@@ -259,11 +259,11 @@ func CreateClusterRoleBinding(opts *RoleBindingOpts, config clientcmd.ClientConf
 
 	c, err := config.ClientConfig()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	restClient, err := kubernetes.NewForConfig(c)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	rb := &v1.ClusterRoleBinding{}
@@ -275,7 +275,7 @@ func CreateClusterRoleBinding(opts *RoleBindingOpts, config clientcmd.ClientConf
 	roleBinding, err := restClient.RbacV1().ClusterRoleBindings().Create(rb)
 
 	if err != nil {
-		panic(err.Error())
+		return roleBinding, err
 	}
 
 	return roleBinding, err
