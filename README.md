@@ -12,4 +12,5 @@ kubecli ns contextName --namespace newNamespace</br>
 kubecli test contextName</br>
 kubecli newcontext mycontext --namespaace=default --role=admin </br>
 
+![](readme/kubecli-ls.png)
  
