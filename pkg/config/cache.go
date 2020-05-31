@@ -3,8 +3,8 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 )
@@ -76,13 +76,13 @@ func NewLocalCache(cacheOpt ...string) (*LocalCache, error) {
 //Create ..
 func (c *LocalCache) Create() error {
 	_, err := os.Stat(c.cachePath)
-	fmt.Printf("cachefile %v err %v", c.cachePath, err)
+	log.Printf("cachefile %v err %v", c.cachePath, err)
 
 	if err == nil || !os.IsNotExist(err) {
 		return err
 	}
 
-	fmt.Printf("\ncreating cache file %v\n\n", LocalCacheFile)
+	log.Printf("\ncreating cache file %v\n\n", LocalCacheFile)
 	err = os.MkdirAll(path.Dir(LocalCacheFile), os.ModePerm)
 	if err != nil {
 		return err
@@ -107,7 +107,7 @@ func (c *LocalCache) loadCache() (map[string]*KubeContext, error) {
 }
 
 func (c *LocalCache) Flash() (*LocalCache, error) {
-	fmt.Printf("flashing cache\n")
+	log.Printf("flashing cache\n")
 	bytes, err := json.Marshal(c.cache)
 
 	if err != nil {

@@ -1,7 +1,8 @@
 package config
 
 import (
-	"github.com/docker/machine/libmachine/log"
+	"log"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -20,7 +21,7 @@ func ValidateCluster(waitingPeriod int64, namespace string, client *kubernetes.C
 			Pods(namespace).
 			List(metav1.ListOptions{TimeoutSeconds: &t})
 
-	log.Debug("[%v] pods are %v len=%v \n", pods.Items, len(pods.Items))
+	log.Printf("pods are %v len=%v \n", pods.Items, len(pods.Items))
 	if err != nil {
 		return false, err
 	}

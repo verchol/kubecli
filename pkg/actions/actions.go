@@ -2,8 +2,10 @@ package actions
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
 
-	"github.com/docker/machine/libmachine/log"
 	"github.com/urfave/cli"
 	"github.com/verchol/kubectx/pkg/config"
 	configtools "github.com/verchol/kubectx/pkg/config"
@@ -17,9 +19,8 @@ import (
 func Commands(app *cli.App) {
 	app.Commands = []cli.Command{
 		{
-			Name:    "version",
-			Aliases: []string{"version"},
-			Usage:   "create a new config",
+			Name:  "version",
+			Usage: "create a new config",
 			Action: func(c *cli.Context) {
 				color.Green("cli info is %v\n", app.Version)
 			},
@@ -67,7 +68,7 @@ func Commands(app *cli.App) {
 					Usage: "used to validate cluster connectivity",
 				},
 			},
-			Action: configtools.HandleSetContext,
+			Action: ListActionsHandler,
 		},
 		{
 			Name:    "newcontext",
@@ -112,10 +113,24 @@ func Commands(app *cli.App) {
 		}, cli.BoolFlag{
 			Name:  "cache",
 			Usage: "take information from local cache file ",
+		}, cli.BoolFlag{
+			Name:     "verbose",
+			Required: false,
+			Usage:    "enable printing extra debuggin information",
 		},
 	}
+	app.Before = func(c *cli.Context) error {
+		if c.GlobalBool("verbose") {
+			log.SetOutput(os.Stdout)
+		} else {
+			log.SetOutput(ioutil.Discard)
+		}
 
-	app.Action = configtools.SetContextAction
+		return nil
+	}
+	app.Action = configtools.DefaultActionHandler
+
+	//app.Action = configtools.HandleSetContext
 }
 
 //CreqteContextAction ...
@@ -128,18 +143,16 @@ func CreateContextAction(c *cli.Context) error {
 	ns := c.String("namespace")
 	role := c.String("role")
 
-	if ns != "" {
-		role = "nonAdmin"
-	}
-
-	if role == "" || role == "admin" {
+	if role == "Admin" || role == "admin" {
 		role = "Admin"
+	} else {
+		role = "nonAdmin"
 	}
 	//_ := c.Bool("create")
 	//_ := c.String("permission")
 
-	log.Info(contextName, ns)
-	log.Info("verbs %v\n", c.StringSlice("verbs"))
+	log.Printf(contextName, ns)
+	log.Printf("verbs %v\n", c.StringSlice("verbs"))
 
 	config, err := configtools.LoadConfig()
 	if err != nil {
@@ -162,7 +175,7 @@ func TestClusterAction(c *cli.Context) error {
 		context = c.Args().First()
 	}
 
-	fmt.Printf("context is %v\n", context)
+	log.Printf("context is %v\n", context)
 
 	config, err := config.LoadConfig()
 	if err != nil {
@@ -189,16 +202,17 @@ func TestClusterAction(c *cli.Context) error {
 	}
 	clientSet, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
+
 	}
 
-	works, err := configtools.ValidateCluster(waitingPeriod, namespace, clientSet)
+	_, validationErr := configtools.ValidateCluster(waitingPeriod, namespace, clientSet)
 	Red := color.New(color.FgRed).SprintFunc()
 	Green := color.New(color.FgGreen).SprintFunc()
 
-	cache, err := configtools.NewLocalCache()
+	cache, cacheerr := configtools.NewLocalCache()
 
-	if err != nil {
+	if cacheerr != nil {
 		panic(err)
 	}
 	kubeContext := configtools.KubeContext{}
@@ -213,8 +227,8 @@ func TestClusterAction(c *cli.Context) error {
 	}
 	kubeContext.Status = configtools.ClusterAvailable
 
-	if !works {
-		fmt.Printf("context %v is not available \n%v :  %v\n", Green(context), Red("error:"), err)
+	if validationErr != nil {
+		fmt.Printf("context %v is not available \n%v :  %v\n", Red(context), Red("error:"), validationErr)
 		kubeContext.Status = configtools.ClusterNotAvailable
 
 	} else {
@@ -222,13 +236,28 @@ func TestClusterAction(c *cli.Context) error {
 		kubeContext.Status = configtools.ClusterAvailable
 	}
 
-	fmt.Printf("adding entry %v %v\n", kubeContext.Name, kubeContext.Status)
+	log.Printf("adding entry %v %v\n", kubeContext.Name, kubeContext.Status)
 
 	cache.AddEntry(context, &kubeContext)
 	cache.Flash()
 	return err
 }
+func ListActionsHandler(c *cli.Context) error {
 
+	config, err := config.LoadConfig()
+	if err != nil {
+		return err
+	}
+
+	flags := configtools.FlagOptions{Validate: false, Cache: c.GlobalBool("cache")}
+	if flags.Cache {
+		configtools.ListContextFromCache()
+		return nil
+	}
+	configtools.ListContexts(config, flags)
+
+	return nil
+}
 func SetContextNamespaceAction(c *cli.Context) error {
 
 	ns := c.Args().First()
@@ -248,7 +277,7 @@ func SetContextNamespaceAction(c *cli.Context) error {
 
 	err = clientcmd.ModifyConfig(config.ConfigAccess(), rawConfig, false)
 
-	fmt.Printf("context %v was updated with namespace %v \n", currentCtxName, ns)
+	log.Printf("context %v was updated with namespace %v \n", currentCtxName, ns)
 
 	return err
 }

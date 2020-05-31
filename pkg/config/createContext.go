@@ -53,23 +53,18 @@ func CreateServiceAccount(namespace string, name string, config clientcmd.Client
 
 		select {
 		case event := <-eventChan:
-			fmt.Printf("event %v %v\n", event.Type, event.Object)
+			log.Printf("event %v %v\n", event.Type, event.Object)
 			sa = event.Object.(*v1.ServiceAccount)
 			if (event.Type == watch.Modified || event.Type == watch.Added) && (len(sa.Secrets) > 0) {
-				fmt.Printf("stop the loop \n")
+				log.Printf("stop the loop \n")
 				skip = true
 				break
 			}
-		default:
-			//fmt.Printf("no value ")
+
 		}
 
 	}
-	fmt.Printf("after loop\n")
-
-	//getOptions := metav1.GetOptions{ResourceVersion: ""}
-	//sa, err := restClient.CoreV1().ServiceAccounts(namespace).Get(createdSa.Name, getOptions)
-	//fmt.Printf("sa = %v", sa)
+	log.Printf("continue after loop\n")
 
 	secrets := sa.Secrets
 	if len(secrets) == 0 {
@@ -77,7 +72,7 @@ func CreateServiceAccount(namespace string, name string, config clientcmd.Client
 	}
 	s := secrets[0]
 	token := getSecretToken(restClient, namespace, s.Name)
-	fmt.Printf("secret %v \n token %v\n", s.Name, token)
+	log.Printf("secret %v \n token %v\n", s.Name, token)
 
 	return ServiceAccount{sa, token}, err
 
@@ -111,12 +106,12 @@ func getServiceAccount(namespace string, name string) (*v1.ServiceAccount, error
 	if err != nil {
 		panic(err.Error())
 	}
-	fmt.Printf("sa = %v", sa.Name)
+	log.Printf("sa = %v", sa.Name)
 	secrets := sa.Secrets
 	for _, s := range secrets {
 
 		token := getSecretToken(restClient, namespace, s.Name)
-		fmt.Printf("secret %v \n token %v\n", s.Name, token)
+		log.Printf("secret %v \n token %v\n", s.Name, token)
 
 	}
 	return sa, err
@@ -131,7 +126,7 @@ func CreateContext(contextName string, namespace string, satoken string, config 
 
 	rawConfig, err := config.RawConfig()
 	currentCtx := rawConfig.Contexts[rawConfig.CurrentContext]
-	fmt.Printf("\ncurrent context is %v\n", rawConfig.CurrentContext)
+	log.Printf("\ncurrent context is %v\n", rawConfig.CurrentContext)
 
 	context := currentCtx.DeepCopy()
 	context.Namespace = namespace
@@ -139,7 +134,7 @@ func CreateContext(contextName string, namespace string, satoken string, config 
 		auth := clientcmdapi.NewAuthInfo()
 		auth.Token = satoken
 		authName := fmt.Sprintf("%v_%v_user", context.Cluster, namespace)
-		fmt.Printf("user:%v", authName)
+		log.Printf("user:%v", authName)
 		rawConfig.AuthInfos[authName] = auth
 		context.AuthInfo = authName
 	}
@@ -155,8 +150,14 @@ func CreateContext(contextName string, namespace string, satoken string, config 
 //CreateNonAdminContext ...
 func CreateNonAdminContext(contextName string, namespace string, config clientcmd.ClientConfig) error {
 
-	sa := fmt.Sprintf("sa-%v-%v", namespace, contextName)
-	roleOpts := NewRoleOpts(fmt.Sprintf("role-%v-%v", sa, namespace), namespace)
+	sa := fmt.Sprintf("sa%v%v", namespace, contextName)
+	sa = strings.ToLower(sa)
+	roleName := fmt.Sprintf("role-%v-%v", contextName, namespace)
+	roleName = strings.ToLower(roleName)
+
+	roleOpts := NewRoleOpts(roleName, namespace)
+
+	CreateNamespace(namespace, config)
 	role, err := CreateRole(roleOpts, config)
 
 	if err != nil {
@@ -168,8 +169,6 @@ func CreateNonAdminContext(contextName string, namespace string, config clientcm
 		//return err
 
 	}
-
-	CreateNamespace(namespace, config)
 
 	saObj, err := CreateServiceAccount(namespace, sa, config)
 

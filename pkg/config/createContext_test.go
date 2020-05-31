@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"testing"
 	"time"
 
@@ -22,11 +23,11 @@ func TestLoadWithRules(t *testing.T) {
 	}
 	rawConfig, err := config.RawConfig()
 
-	fmt.Printf("default context is %v \n", rawConfig.CurrentContext)
+	log.Printf("default context is %v \n", rawConfig.CurrentContext)
 	contexts := rawConfig.Contexts
 
 	for name, _ := range contexts {
-		fmt.Printf("context is %v \n", name)
+		log.Printf("context is %v \n", name)
 	}
 
 }
@@ -47,7 +48,7 @@ func TestLocalCache(t *testing.T) {
 		panic(err)
 	}
 	for k, v := range c.cache {
-		fmt.Printf("cache  %v %v", k, v)
+		log.Printf("cache  %v %v", k, v)
 	}
 	c.Reset()
 
@@ -56,18 +57,18 @@ func TestCluster(t *testing.T) {
 
 	config, err := LoadConfig()
 	if err != nil {
-		fmt.Printf("can't load config")
+		log.Printf("can't load config")
 		panic(err)
 	}
 	r, _ := config.RawConfig()
 	contextToTest := r.CurrentContext
-	fmt.Printf("context for validation %v \n", contextToTest)
+	log.Printf("context for validation %v \n", contextToTest)
 	tempConfig := clientcmd.NewDefaultClientConfig(r,
 		&clientcmd.ConfigOverrides{CurrentContext: contextToTest})
 
 	namespace, _, err := tempConfig.Namespace()
 	if err != nil {
-		fmt.Printf("something wrong with context %v \n", contextToTest)
+		log.Printf("something wrong with context %v \n", contextToTest)
 		panic(err)
 	}
 
@@ -86,8 +87,8 @@ func TestCluster(t *testing.T) {
 
 	after := before.Add(d)
 
-	fmt.Printf("started at %v\n", before)
-	fmt.Printf("finieshed at %v\n", after)
+	log.Printf("started at %v\n", before)
+	log.Printf("finieshed at %v\n", after)
 	if !works || err != nil {
 		t.Error(err)
 	}
@@ -104,7 +105,7 @@ func TestRoleOpts(t *testing.T) {
 func testServiceAccount(t *testing.T) {
 	//	sa, err := createServiceAccount("default", "sa3")
 	sa, err := getServiceAccount("default", "default")
-	fmt.Printf("%v %v", sa.Secrets, err)
+	log.Printf("%v %v", sa.Secrets, err)
 }
 func TestCreateServiceAccount(t *testing.T) {
 	//	sa, err := createServiceAccount("default", "sa3")
@@ -127,7 +128,7 @@ func TestCreateServiceAccount(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Printf("service account %v token- %v err- %v\n",
+	log.Printf("service account %v token- %v err- %v\n",
 		sa.Sa.Name, sa.Token, err)
 
 	roleOpts := NewRoleOpts(fmt.Sprintf("role-%v", serviceAccountName), namespace)
@@ -175,7 +176,7 @@ func TestConnection(t *testing.T) {
 	if err != nil {
 		panic(err.Error())
 	}
-	fmt.Printf("[]There are %d pods in the cluster\n", len(pods.Items))
+	log.Printf("[]There are %d pods in the cluster\n", len(pods.Items))
 }
 func TestCreateContext(t *testing.T) {
 	config, err := LoadConfig()
@@ -247,7 +248,7 @@ func TestCreateRoleBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("roleBindings %v for role %vwith subjects %v\n", rb.ObjectMeta.Name, rb.RoleRef.Name, rb.Subjects)
+	log.Printf("roleBindings %v for role %vwith subjects %v\n", rb.ObjectMeta.Name, rb.RoleRef.Name, rb.Subjects)
 
 }
 
@@ -296,7 +297,7 @@ func CreateRoleLogic(name string, ns string, config clientcmd.ClientConfig) (*Ro
 	if err != nil {
 		return roleOpts, err
 	}
-	fmt.Printf("role %v with rules %v\n", role.ObjectMeta.Name, role.Rules)
+	log.Printf("role %v with rules %v\n", role.ObjectMeta.Name, role.Rules)
 
 	return roleOpts, nil
 }
@@ -307,7 +308,7 @@ func CreateClusterRoleLogic(config clientcmd.ClientConfig) (*v1.ClusterRole, err
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("role %v with rules %v\n", role.ObjectMeta.Name, role.Rules)
+	log.Printf("role %v with rules %v\n", role.ObjectMeta.Name, role.Rules)
 
 	return role, err
 }
@@ -340,19 +341,19 @@ var GlobalContext GlobalTestContext
 func SetupTestContext(testContextName string, ns string) error {
 	config, err := LoadConfig()
 	if err != nil {
-		fmt.Printf("warning %v\n", err)
+		log.Printf("warning %v\n", err)
 	}
 	err = CreateAdminContext(testContextName, ns, config)
 	if err != nil {
-		fmt.Printf("warning %v\n", err)
+		log.Printf("warning %v\n", err)
 	}
 	err = CreateNamespace(ns, config)
 	if err != nil {
-		fmt.Printf("warning %v\n", err)
+		log.Printf("warning %v\n", err)
 	}
 	err = SetNamespaceToContext(ns, config)
 	if err != nil {
-		fmt.Printf("warning %v\n", err)
+		log.Printf("warning %v\n", err)
 	}
 
 	GlobalContext = GlobalTestContext{config, ns}
@@ -361,7 +362,7 @@ func SetupTestContext(testContextName string, ns string) error {
 
 func DeleteTestContext(testContextName string, ns string) error {
 	config := GlobalContext.Config
-	fmt.Printf("End of test execution , deleting context %v\n", testContextName)
+	log.Printf("End of test execution , deleting context %v\n", testContextName)
 
 	err := DeleteNamespace(ns, config)
 	if err != nil {

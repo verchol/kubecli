@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"log"
 	"path/filepath"
 	"sort"
 	"time"
@@ -17,7 +18,6 @@ import (
 
 	"os"
 
-	"github.com/docker/machine/libmachine/log"
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/urfave/cli"
@@ -47,7 +47,7 @@ func SetNewCurrentContext(config clientcmd.ClientConfig, newContext string) (cli
 		WrongContextMessage := fmt.Sprintf("context %v does not exist ", newContext)
 		return config, errors.New(WrongContextMessage)
 	}
-	log.Debug("%v\n", config.ConfigAccess())
+	log.Printf("%v\n", config.ConfigAccess())
 	err = clientcmd.ModifyConfig(config.ConfigAccess(), rawConfig, false)
 	if err != nil {
 		panic(err)
@@ -58,20 +58,20 @@ func SetNewCurrentContext(config clientcmd.ClientConfig, newContext string) (cli
 func printAuth(auth *api.AuthInfo) {
 	if auth.Token != "" {
 		color.Green("[token] ")
-		fmt.Printf("token = %v\n", auth.Token)
+		log.Printf("token = %v\n", auth.Token)
 	}
 	if auth.TokenFile != "" {
 		color.Green("[tokenfile] ")
-		fmt.Printf("%v\n", auth.TokenFile)
+		log.Printf("%v\n", auth.TokenFile)
 	}
 	if auth.ClientCertificate != "" {
 		color.Green("[cert] ")
-		fmt.Printf("%v\n", auth.ClientCertificate)
+		log.Printf("%v\n", auth.ClientCertificate)
 		color.Green("[cert] ")
-		fmt.Printf("%v\n", auth.ClientCertificateData)
+		log.Printf("%v\n", auth.ClientCertificateData)
 	}
 	if auth.AuthProvider != nil {
-		fmt.Printf("[authProvider] = %v\n", auth.AuthProvider)
+		log.Printf("[authProvider] = %v\n", auth.AuthProvider)
 	}
 }
 
@@ -86,7 +86,11 @@ func LoadConfig(opts ...string) (clientcmd.ClientConfig, error) {
 }
 
 //SetContextAction ....
-func SetContextAction(c *cli.Context) error {
+func DefaultActionHandler(c *cli.Context) error {
+
+	if c.Command.Name != "" {
+		return errors.New("use command instead")
+	}
 
 	var newContext string
 
@@ -95,58 +99,83 @@ func SetContextAction(c *cli.Context) error {
 		return err
 	}
 	newContext = c.Args().First()
-	oldContext := ""
 	if newContext == "" {
-		fmt.Println("missing context name ...")
-		return errors.New("missing context name")
+
+		cli.ShowCommandHelp(c, "")
+		return nil
 	}
 
-	rawConfig, _ := config.RawConfig()
-	oldContext = rawConfig.CurrentContext
-	config, err = SetNewCurrentContext(config, newContext)
-
-	red := color.New(color.FgRed).SprintFunc()
 	green := color.New(color.FgGreen).SprintFunc()
-
-	if err != nil {
-		fmt.Printf("wrong context %v \n", red(newContext))
-		return err
-	}
-
-	if oldContext != newContext {
-		fmt.Printf("switch context from %v to %v\n", oldContext, green(newContext))
-	} else {
-		fmt.Printf("context %v is already set as current\n", green(newContext))
-	}
-	return err
-}
-func HandleSetContext(c *cli.Context) error {
-
-	var newContext string
-
-	config, err := LoadConfig()
-	if err != nil {
-		return err
-	}
+	rawConfig, _ := config.RawConfig()
+	oldContext := rawConfig.CurrentContext
 
 	newContext = c.Args().Get(0)
-	log.Debug("new context %v", newContext)
+	newConfig, err := SwitchContext(newContext, oldContext, config)
 
-	if newContext != "" {
-		fmt.Printf("updating context... %v", newContext)
-		config, _ = SetNewCurrentContext(config, newContext)
+	if err != nil {
+		return err
 	}
-	rawConfig, err := config.RawConfig()
-	fmt.Printf("\ncurrent context is %v\n", rawConfig.CurrentContext)
 
 	flags := FlagOptions{Validate: false, Cache: c.GlobalBool("cache")}
 	if flags.Cache {
 		ListContextFromCache()
 		return nil
 	}
-	ListContexts(config, flags)
-
+	ListContexts(newConfig, flags)
+	if oldContext != newContext {
+		fmt.Printf("switched current context from %v to %v\n", oldContext, green(newContext))
+	} else {
+		fmt.Printf("context %v is already set as current\n", green(newContext))
+	}
 	return nil
+}
+func HandleSetContext(c *cli.Context) error {
+
+	var newContext string
+
+	green := color.New(color.FgGreen).SprintFunc()
+	config, err := LoadConfig()
+	if err != nil {
+		return err
+	}
+
+	rawConfig, _ := config.RawConfig()
+	oldContext := rawConfig.CurrentContext
+
+	newContext = c.Args().Get(0)
+	newConfig, err := SwitchContext(newContext, oldContext, config)
+
+	if err != nil {
+		return err
+	}
+
+	flags := FlagOptions{Validate: false, Cache: c.GlobalBool("cache")}
+	if flags.Cache {
+		ListContextFromCache()
+		return nil
+	}
+	ListContexts(newConfig, flags)
+	if oldContext != newContext {
+		fmt.Printf("switched current context from %v to %v\n", oldContext, green(newContext))
+	} else {
+		fmt.Printf("context %v is already set as current\n", green(newContext))
+	}
+	return nil
+}
+
+//SwitchContext...
+func SwitchContext(newContext string, oldContext string, config clientcmd.ClientConfig) (clientcmd.ClientConfig, error) {
+
+	log.Printf("updating context... %v", newContext)
+	config, err := SetNewCurrentContext(config, newContext)
+
+	if err != nil {
+		log.Printf("wrong context %v \n", newContext)
+		return config, err
+	}
+
+	return config, nil
+
 }
 func HandleDeleteContext(c *cli.Context) error {
 
@@ -158,7 +187,7 @@ func HandleDeleteContext(c *cli.Context) error {
 	}
 
 	rawConfig, err := config.RawConfig()
-	fmt.Printf("\ncurrent context is %v\n", rawConfig.CurrentContext)
+	log.Printf("\ncurrent context is %v\n", rawConfig.CurrentContext)
 
 	if !c.Args().Present() {
 		fmt.Println("no contexts to delete provided")
@@ -170,17 +199,17 @@ func HandleDeleteContext(c *cli.Context) error {
 		arg := args.Get(i)
 		_, ok := rawConfig.Contexts[arg]
 		if !ok {
-			fmt.Printf("nothing to delete - cannot find context %s\n", red(arg))
+			log.Printf("nothing to delete - cannot find context %s\n", red(arg))
 			continue
 		}
 
 		if rawConfig.CurrentContext == arg {
-			fmt.Printf("warning: this removed your active context, use \"kubectl config use-context\" to select a different one\n")
+			log.Printf("warning: this removed your active context, use \"kubectl config use-context\" to select a different one\n")
 			continue
 		}
 
 		delete(rawConfig.Contexts, arg)
-		fmt.Printf("\ncontext %s deleted\n", red(arg))
+		log.Printf("\ncontext %s deleted\n", red(arg))
 	}
 
 	if err := clientcmd.ModifyConfig(config.ConfigAccess(), rawConfig, true); err != nil {
@@ -202,7 +231,7 @@ func LoadConfigFromFile(opts ...string) (clientcmd.ClientConfig, error) {
 	green := color.New(color.FgGreen).SprintFunc()
 	//tempConfig.CurrentContext
 	config := clientcmd.NewDefaultClientConfig(*tempConfig, &clientcmd.ConfigOverrides{})
-	fmt.Printf("%v\n", green(config.ConfigAccess().GetDefaultFilename()))
+	log.Printf("%v\n", green(config.ConfigAccess().GetDefaultFilename()))
 
 	return config, nil
 
@@ -222,7 +251,7 @@ func ListContextFromCache() {
 //UpdateCache
 func UpdateCache(data map[string]*KubeContext) error {
 	c, err := NewLocalCache()
-	fmt.Printf("update cache %v\n", len(data))
+	log.Printf("update cache %v\n", len(data))
 	if err != nil {
 		return err
 	}
@@ -259,14 +288,14 @@ func ListContexts(config clientcmd.ClientConfig, flags FlagOptions) {
 		authProvider := "default"
 
 		if err != nil {
-			fmt.Printf("error is %v\n", err)
+			log.Printf("error is %v\n", err)
 			authProvider = "invalid"
 		}
 
 		if (err == nil) && (cfg.AuthProvider != nil) {
 			authProvider = cfg.AuthProvider.Name
 		}
-		log.Debug("[auth %v]\n", authProvider)
+		log.Printf("[auth %v]\n", authProvider)
 		//	auth := fmt.Sprintf("[%s]", authProvider)
 		pods = 1
 		var status ClusterStatus
@@ -361,7 +390,7 @@ func testCluster(config clientcmd.ClientConfig, currentContext string) int {
 	ns, _, _ := config.Namespace()
 	var timeout int64 = 5
 
-	fmt.Printf("checking if cluster %v avaialable\n", restConfig.Host)
+	log.Printf("checking if cluster %v avaialable\n", restConfig.Host)
 
 	pods, err :=
 		clientset.
@@ -369,7 +398,7 @@ func testCluster(config clientcmd.ClientConfig, currentContext string) int {
 			Pods(ns).
 			List(metav1.ListOptions{TimeoutSeconds: &timeout})
 
-	log.Debug("[%v] pods are %v len=%v \n", currentContext, pods.Items, len(pods.Items))
+	log.Printf("[%v] pods are %v len=%v \n", currentContext, pods.Items, len(pods.Items))
 	if err != nil {
 		return -1
 	}
@@ -425,12 +454,12 @@ func DeleteContexts(contexts []string, config clientcmd.ClientConfig, modifyFile
 
 		_, ok := rawConfig.Contexts[ctx]
 		if !ok {
-			fmt.Printf("nothing to delete - cannot find context %s\n", ctx)
+			log.Printf("nothing to delete - cannot find context %s\n", ctx)
 			continue
 		}
 
 		delete(rawConfig.Contexts, ctx)
-		fmt.Printf("\ncontext %s deleted\n", ctx)
+		log.Printf("\ncontext %s deleted\n", ctx)
 	}
 	if !modifyFile {
 		return err
