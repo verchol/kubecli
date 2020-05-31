@@ -1,5 +1,5 @@
 
-# kubecli utiliy for managing Kubernets contexts
+# kubecli utiliy for managing Kubernetes contexts
 
 a tool that helps more effectively use kubernetes context management , inspired by kubectx 
 
