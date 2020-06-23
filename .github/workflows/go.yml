@@ -12,7 +12,8 @@ jobs:
     env:
       working-directory: $GITHUB_WORKSPACE
     steps:
-
+    - name: checkout 
+      uses: actions/checkout@v2
     - name: Set up Go 1.13
       uses: actions/setup-go@v1
       with:
