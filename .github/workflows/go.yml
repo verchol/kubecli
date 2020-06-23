@@ -5,6 +5,7 @@ jobs:
    runs-on: ubuntu-latest
    steps:
      - run : echo ls
+     - run : env .
   build:
     name: Build
     runs-on: ubuntu-latest
