@@ -9,8 +9,8 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    env:
-      working-directory: $GITHUB_WORKSPACE
+    #env:
+     # working-directory: $GITHUB_WORKSPACE
     steps:
     - name: checkout 
       uses: actions/checkout@v2
