@@ -23,5 +23,5 @@ jobs:
       id: go
 
     - name: GoReleaser Action
-      run: build .
+      run: goreleaser build .
        
