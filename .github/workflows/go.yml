@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     #env:
      # working-directory: $GITHUB_WORKSPACE
+    container:  
+      image: goreleaser/goreleaser
     steps:
     - name: checkout 
       uses: actions/checkout@v2
@@ -21,7 +23,5 @@ jobs:
       id: go
 
     - name: GoReleaser Action
-      uses: goreleaser/goreleaser-action@v1.2.1
-      with:
-         workdir : ${{env.working-directory}}
-
+      run: build .
+       
