@@ -12,7 +12,7 @@ jobs:
     #env:
      # working-directory: $GITHUB_WORKSPACE
     container:  
-      image: goreleaser/goreleaser
+      image: goreleaser/goreleaser:v0.138
     steps:
     - name: checkout 
       uses: actions/checkout@v2
@@ -23,5 +23,5 @@ jobs:
       id: go
 
     - name: GoReleaser Action
-      run: goreleaser build .
+      run:  cd /github/workspace && ls &&& goreleaser build .
        
