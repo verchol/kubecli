@@ -23,5 +23,5 @@ jobs:
       id: go
 
     - name: GoReleaser Action
-      run:  cd /github/workspace && ls && goreleaser build .
+      run: ls -lt  && goreleaser build .
        
