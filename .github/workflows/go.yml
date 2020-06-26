@@ -1,13 +1,21 @@
 name: Go
 on: [push]
 jobs:
+  init:
+   runs-on: ubuntu-latest
+   steps:
+     - run : ls -lt
+     - run : env .
   build:
     name: Build
     runs-on: ubuntu-latest
-    env:
-      working-directory: ./
+    #env:
+     # working-directory: $GITHUB_WORKSPACE
+    container:  
+     image: goreleaser/goreleaser:v0.138
     steps:
-
+    - name: checkout 
+      uses: actions/checkout@v2
     - name: Set up Go 1.13
       uses: actions/setup-go@v1
       with:
@@ -15,7 +23,5 @@ jobs:
       id: go
 
     - name: GoReleaser Action
-      uses: goreleaser/goreleaser-action@v1.2.1
-      with:
-         workdir : ${{env.working-directory}}
-
+      run: ls -lt  && goreleaser check
+       
