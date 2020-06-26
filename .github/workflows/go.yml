@@ -3,6 +3,8 @@ on: [push]
 jobs:
   init:
    runs-on: ubuntu-latest
+   container:  
+     image: alpine
    steps:
      - run : ls -lt
      - run : env .
