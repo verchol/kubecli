@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     #env:
      # working-directory: $GITHUB_WORKSPACE
-    #container:  
+    container:  
      image: goreleaser/goreleaser:v0.138
     steps:
     - name: checkout 
