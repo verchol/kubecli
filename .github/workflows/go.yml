@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     #env:
      # working-directory: $GITHUB_WORKSPACE
-    container:  
-     image: goreleaser/goreleaser:v0.138
+    #container:  
+     #image: goreleaser/goreleaser:v0.138
     steps:
     - name: checkout 
       uses: actions/checkout@v2
@@ -22,7 +22,9 @@ jobs:
       with:
         go-version: 1.13
       id: go
-
-    - name: GoReleaser Action
-      run: ls -lt  && goreleaser build --snapshot
+    - name: compile and release
+      uses: ngs/go-release.action@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+   
        
