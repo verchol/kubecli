@@ -13,7 +13,7 @@ jobs:
   - name: Codefresh pipeline runner
     uses: codefresh-io/codefresh-pipeline-runner@v5
     env:
-       PIPELINE_NAME: 'codefresh-pipeline'
-       TRIGGER_NAME: 'codefresh-trigger'
+       PIPELINE_NAME: 'github-action/github-action-test'
+       TRIGGER_NAME: 'verchol/kubecli'
        CF_API_KEY: ${{ secrets.CF_API_TOKEN }}
        id: run-pipeline
