@@ -1,0 +1,19 @@
+name: codefresh
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+ codefresh_run:
+  runs-on: ubuntu-latest
+  steps:
+  - name: Codefresh pipeline runner
+    uses: codefresh-io/codefresh-pipeline-runner@v5
+    env:
+       PIPELINE_NAME: 'codefresh-pipeline'
+       TRIGGER_NAME: 'codefresh-trigger'
+       CF_API_KEY: ${{ secrets.CF_API_TOKEN }}
+       id: run-pipeline
