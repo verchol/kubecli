@@ -10,6 +10,7 @@ jobs:
  codefresh_run:
   runs-on: ubuntu-latest
   steps:
+  - uses : hmarr/debug-action
   - run : echo $CF_API_TOKEN
   - name: Codefresh pipeline runner
     uses: codefresh-io/codefresh-pipeline-runner@v5
