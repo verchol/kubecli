@@ -1,6 +1,6 @@
 # kubecli
 
-a tool that helps more effectively use kubernetes context management , inspired by kubectx 
+a tool that helps in more useable treats kubernetes context management , inspired by kubectx 
 
 brew tap verchol/kubecli
 brew install /upgrade kubecli
