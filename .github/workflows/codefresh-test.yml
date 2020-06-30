@@ -1,0 +1,21 @@
+name: codefresh
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+ codefresh_run:
+  runs-on: ubuntu-latest
+  steps:
+  - uses : hmarr/debug-action@v1.0.0
+  - run : cat  "$CF_API_TOKEN" && echo  ${{ secrets.CF_API_TOKEN }}
+  - name: Codefresh pipeline runner
+    uses: codefresh-io/codefresh-pipeline-runner@v5
+    env:
+       PIPELINE_NAME: 'github-action/github-action-test'
+       TRIGGER_NAME: 'verchol/kubecli'
+       CF_API_KEY: ${{ secrets.CF_API_TOKEN }}
+       id: run-pipeline
