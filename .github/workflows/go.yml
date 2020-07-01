@@ -7,6 +7,7 @@ jobs:
      image: alpine
    steps:
      - run : ls -lt
+     - run : sleep 10
   build:
     name: Build
     runs-on: ubuntu-latest
