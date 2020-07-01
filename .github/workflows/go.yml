@@ -10,6 +10,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    needs: init
     #env:
      # working-directory: $GITHUB_WORKSPACE
     #container:  
