@@ -23,5 +23,6 @@ jobs:
       id: go
 
     - name: GoReleaser Action
-      run: ls -lt  && goreleaser --version && cat .goreleaser.yml
+      run: ls -lt  && goreleaser --version && cat .goreleaser.yml 
+    - run: goreleaser build --snapshot
        
