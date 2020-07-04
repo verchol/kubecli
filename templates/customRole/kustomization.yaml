@@ -1,0 +1,8 @@
+resources:
+- ../role
+commonLabels:
+    app: hello
+patchesStrategicMerge:
+ - customRole.yaml
+namePrefix : custom
+namespace: test1

@@ -7,11 +7,19 @@ import (
 	"github.com/verchol/kubectx/pkg/actions"
 )
 
-func info() {
+//AppVersion ...
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+	builtBy = "unknown"
+)
+
+func init() {
 	app.Name = "Create Kubeconfig CLI"
-	app.Usage = "An example how to create kube config"
-	app.Author = "verchol"
-	app.Version = "1.0.0"
+	app.Usage = "kubernetes context management utility"
+	app.Author = "Oleg Verhovsky"
+	app.Version = version
 }
 
 var app = cli.NewApp()
@@ -26,7 +34,7 @@ func main() {
 	err := app.Run(os.Args)
 
 	if err != nil {
-		os.Exit(1)
+		panic(err)
 	}
 	return
 
