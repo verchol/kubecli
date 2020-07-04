@@ -1,5 +1,6 @@
 name: Go
 on: [push]
+# comment
 jobs:
   init:
    runs-on: ubuntu-latest
